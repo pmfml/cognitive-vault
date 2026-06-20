@@ -73,21 +73,30 @@ The REST API will be available at `http://localhost:8080`.
 
 ---
 
-## 📡 REST API Documentation (Phase 1 Endpoint Overview)
+## 📡 REST API Documentation
 
-Below are the base endpoints available for Note Management:
+### Note Management Endpoints
 
 | Method | Endpoint | Description | Status Code |
 | :--- | :--- | :--- | :--- |
-| **GET** | `/api/notes` | Retrieves all notes | `200 OK` |
-| **GET** | `/api/notes/{id}` | Retrieves a note by UUID (updates last access) | `200 OK` |
-| **POST** | `/api/notes` | Creates a new Note or Snippet | `201 Created` |
-| **PUT** | `/api/notes/{id}` | Updates note content, title, or tags | `200 OK` |
-| **DELETE** | `/api/notes/{id}` | Deletes a note | `204 No Content` |
+| **GET** | `/api/v1/notes` | Retrieves all notes | `200 OK` |
+| **GET** | `/api/v1/notes/{id}` | Retrieves a note by UUID (updates last accessed time) | `200 OK` |
+| **POST** | `/api/v1/notes` | Creates a new Note or Snippet | `201 Created` |
+| **PUT** | `/api/v1/notes/{id}` | Updates note content, title, or tags | `200 OK` |
+| **DELETE** | `/api/v1/notes/{id}` | Deletes a note | `204 No Content` |
+
+### Attachment Management Endpoints
+
+| Method | Endpoint | Description | Status Code |
+| :--- | :--- | :--- | :--- |
+| **POST** | `/api/v1/notes/{noteId}/attachments` | Uploads a file attachment linked to the note | `201 Created` |
+| **GET** | `/api/v1/attachments/{id}` | Retrieves metadata of a specific attachment | `200 OK` |
+| **GET** | `/api/v1/attachments/{id}/download` | Downloads the raw binary file content | `200 OK` |
+| **DELETE** | `/api/v1/attachments/{id}` | Deletes an attachment from database and storage | `204 No Content` |
 
 ### Sample JSON Payloads
 
-#### Create a Code Snippet (`POST /api/notes`)
+#### Create a Code Snippet (`POST /api/v1/notes`)
 ```json
 {
   "title": "Reverse Array in Java",
