@@ -1,9 +1,29 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: 'pgvector/pgvector:pg16'
     environment:
-      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_DB=cognitive_vault'
       - 'POSTGRES_PASSWORD=secret'
       - 'POSTGRES_USER=myuser'
     ports:
-      - '5432'
+      - '5432:5432'
+
+  minio:
+    image: 'minio/minio:latest'
+    command: server /data --console-address ":9001"
+    environment:
+      - 'MINIO_ROOT_USER=minioadmin'
+      - 'MINIO_ROOT_PASSWORD=minioadmin'
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+
+  elasticsearch:
+    image: 'docker.elastic.co/elasticsearch/elasticsearch:8.12.2'
+    environment:
+      - 'discovery.type=single-node'
+      - 'xpack.security.enabled=false'
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+    ports:
+      - '9200:9200'
+
