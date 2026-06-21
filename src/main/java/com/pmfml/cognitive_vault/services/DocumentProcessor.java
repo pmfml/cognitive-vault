@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 /**
  * Service responsible for extracting textual content from uploaded files (attachments)
@@ -13,6 +14,10 @@ import java.nio.charset.StandardCharsets;
 public class DocumentProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentProcessor.class);
+
+    private static final String TEXT_MIME_PREFIX = "text/";
+    private static final String JSON_MIME_TYPE = "application/json";
+    private static final Set<String> SUPPORTED_EXTENSIONS = Set.of(".txt", ".md", ".json");
 
     /**
      * Extracts text content from raw file bytes based on the file content type or filename.
@@ -31,8 +36,8 @@ public class DocumentProcessor {
 
         log.info("Attempting text extraction for file: {} (MIME: {}, size: {} bytes)", filename, contentType, content.length);
 
-        boolean isTextType = (contentType != null && (contentType.startsWith("text/") || contentType.equals("application/json")))
-                || (filename != null && (filename.endsWith(".txt") || filename.endsWith(".md") || filename.endsWith(".json")));
+        boolean isTextType = (contentType != null && (contentType.startsWith(TEXT_MIME_PREFIX) || contentType.equals(JSON_MIME_TYPE)))
+                || (filename != null && hasSupportedExtension(filename));
 
         if (isTextType) {
             try {
@@ -47,5 +52,10 @@ public class DocumentProcessor {
 
         log.warn("Text extraction not supported for content type: {} or file: {}", contentType, filename);
         return "";
+    }
+
+    private boolean hasSupportedExtension(String filename) {
+        String lowerFilename = filename.toLowerCase();
+        return SUPPORTED_EXTENSIONS.stream().anyMatch(lowerFilename::endsWith);
     }
 }
