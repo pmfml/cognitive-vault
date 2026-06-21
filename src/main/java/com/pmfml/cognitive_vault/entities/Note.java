@@ -46,6 +46,7 @@ public class Note {
     private String summary;
 
     @Column(name = "embedding", columnDefinition = "vector(384)")
+    @org.hibernate.annotations.ColumnTransformer(write = "CAST(? AS vector)")
     private float[] embedding;
 
     @CreationTimestamp
