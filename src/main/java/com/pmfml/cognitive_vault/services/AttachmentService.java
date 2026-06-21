@@ -26,6 +26,7 @@ public class AttachmentService {
     private final NoteRepository noteRepository;
     private final AttachmentStorageService storageService;
     private final DocumentProcessor documentProcessor;
+    private final ElasticsearchIndexer elasticsearchIndexer;
 
     /**
      * Constructor injection for repositories and utility services.
@@ -33,11 +34,13 @@ public class AttachmentService {
     public AttachmentService(AttachmentRepository attachmentRepository,
                              NoteRepository noteRepository,
                              AttachmentStorageService storageService,
-                             DocumentProcessor documentProcessor) {
+                             DocumentProcessor documentProcessor,
+                             ElasticsearchIndexer elasticsearchIndexer) {
         this.attachmentRepository = attachmentRepository;
         this.noteRepository = noteRepository;
         this.storageService = storageService;
         this.documentProcessor = documentProcessor;
+        this.elasticsearchIndexer = elasticsearchIndexer;
     }
 
     /**
@@ -86,6 +89,9 @@ public class AttachmentService {
         Attachment saved = attachmentRepository.save(attachment);
         log.info("Attachment metadata persisted successfully with ID: {}", saved.getId());
 
+        // Re-index the parent note to include the new attachment's extracted text
+        elasticsearchIndexer.indexNote(note);
+
         return mapToResponse(saved);
     }
 
@@ -133,9 +139,20 @@ public class AttachmentService {
         // 1. Delete physical object in S3/MinIO
         storageService.deleteFile(attachment.getS3Key());
 
+        Note note = attachment.getNote();
+
         // 2. Delete database record
         attachmentRepository.delete(attachment);
         log.info("Attachment ID: {} deleted from database and storage.", attachmentId);
+
+        if (note != null) {
+            // Remove the deleted attachment from the note's list to prevent indexing stale data
+            if (note.getAttachments() != null) {
+                note.getAttachments().remove(attachment);
+            }
+            // 3. Re-index parent note in Elasticsearch
+            elasticsearchIndexer.indexNote(note);
+        }
     }
 
     /**

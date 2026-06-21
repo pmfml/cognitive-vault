@@ -43,6 +43,9 @@ class AttachmentServiceTest {
     @Mock
     private DocumentProcessor documentProcessor;
 
+    @Mock
+    private ElasticsearchIndexer elasticsearchIndexer;
+
     @InjectMocks
     private AttachmentService attachmentService;
 
@@ -81,6 +84,7 @@ class AttachmentServiceTest {
         assertEquals(noteId, response.noteId());
         verify(storageService, times(1)).uploadFile(anyString(), eq(content), eq(contentType));
         verify(attachmentRepository, times(1)).save(any(Attachment.class));
+        verify(elasticsearchIndexer, times(1)).indexNote(note);
     }
 
     @Test
@@ -121,9 +125,11 @@ class AttachmentServiceTest {
     void deleteAttachment_whenSuccessful_deletesFromS3AndDatabase() {
         // Arrange
         UUID attachmentId = UUID.randomUUID();
+        Note note = Note.builder().id(UUID.randomUUID()).title("Title").build();
         Attachment attachment = Attachment.builder()
                 .id(attachmentId)
                 .s3Key("key")
+                .note(note)
                 .build();
 
         when(attachmentRepository.findById(attachmentId)).thenReturn(Optional.of(attachment));
@@ -134,5 +140,6 @@ class AttachmentServiceTest {
         // Assert
         verify(storageService, times(1)).deleteFile("key");
         verify(attachmentRepository, times(1)).delete(attachment);
+        verify(elasticsearchIndexer, times(1)).indexNote(note);
     }
 }
