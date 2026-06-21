@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.embedding.EmbeddingModel;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,6 +38,9 @@ class NoteServiceTest {
 
     @Mock
     private RelationshipRepository relationshipRepository;
+
+    @Mock
+    private EmbeddingModel embeddingModel;
 
     @InjectMocks
     private NoteService noteService;
@@ -65,6 +69,7 @@ class NoteServiceTest {
         when(tagRepository.findByName("java")).thenReturn(Optional.of(Tag.builder().name("java").build()));
         when(tagRepository.findByName("spring")).thenReturn(Optional.empty());
         when(tagRepository.save(any(Tag.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(embeddingModel.embed(anyString())).thenReturn(new float[384]);
 
         when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> {
             Note toSave = invocation.getArgument(0);
@@ -129,6 +134,7 @@ class NoteServiceTest {
 
         when(noteRepository.findById(noteId)).thenReturn(Optional.of(note));
         when(tagRepository.findByName("java")).thenReturn(Optional.of(Tag.builder().name("java").build()));
+        when(embeddingModel.embed(anyString())).thenReturn(new float[384]);
         when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         NoteResponse response = noteService.updateNote(noteId, request);

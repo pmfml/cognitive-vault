@@ -8,6 +8,7 @@ import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import com.pmfml.cognitive_vault.repositories.RelationshipRepository;
 import com.pmfml.cognitive_vault.repositories.TagRepository;
+import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,11 +28,16 @@ public class NoteService {
     private final NoteRepository noteRepository;
     private final TagRepository tagRepository;
     private final RelationshipRepository relationshipRepository;
+    private final EmbeddingModel embeddingModel;
 
-    public NoteService(NoteRepository noteRepository, TagRepository tagRepository, RelationshipRepository relationshipRepository) {
+    public NoteService(NoteRepository noteRepository,
+                       TagRepository tagRepository,
+                       RelationshipRepository relationshipRepository,
+                       EmbeddingModel embeddingModel) {
         this.noteRepository = noteRepository;
         this.tagRepository = tagRepository;
         this.relationshipRepository = relationshipRepository;
+        this.embeddingModel = embeddingModel;
     }
 
     /**
@@ -48,12 +54,16 @@ public class NoteService {
 
         Set<Tag> resolvedTags = resolveTags(request.tags());
 
+        String textToEmbed = request.title() + "\n" + request.content();
+        float[] embedding = embeddingModel.embed(textToEmbed);
+
         Note note = Note.builder()
                 .title(request.title())
                 .content(request.content())
                 .type(request.type())
                 .language(request.language())
                 .tags(resolvedTags)
+                .embedding(embedding)
                 .lastAccessedAt(Instant.now())
                 .build();
 
@@ -104,6 +114,11 @@ public class NoteService {
         note.setType(request.type());
         note.setLanguage(request.language());
         note.setTags(resolveTags(request.tags()));
+
+        String textToEmbed = note.getTitle() + "\n" + note.getContent();
+        float[] embedding = embeddingModel.embed(textToEmbed);
+        note.setEmbedding(embedding);
+
         note.setLastAccessedAt(Instant.now());
 
         Note updatedNote = noteRepository.save(note);
