@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
+import com.pmfml.cognitive_vault.exceptions.StorageException;
 
 /**
  * Storage service responsible for direct raw file operations in Amazon S3/MinIO
@@ -56,7 +57,7 @@ public class AttachmentStorageService {
             log.info("File upload completed for key: {}", key);
         } catch (S3Exception e) {
             log.error("S3 upload failed for key: {}. Error: {}", key, e.getMessage(), e);
-            throw new RuntimeException("Failed to upload file to storage provider", e);
+            throw new StorageException("Failed to upload file to storage provider", e);
         }
     }
 
@@ -78,7 +79,7 @@ public class AttachmentStorageService {
             return responseBytes.asByteArray();
         } catch (S3Exception e) {
             log.error("S3 download failed for key: {}. Error: {}", key, e.getMessage(), e);
-            throw new RuntimeException("Failed to retrieve file from storage provider", e);
+            throw new StorageException("Failed to retrieve file from storage provider", e);
         }
     }
 
@@ -99,7 +100,7 @@ public class AttachmentStorageService {
             log.info("File deletion completed for key: {}", key);
         } catch (S3Exception e) {
             log.error("S3 deletion failed for key: {}. Error: {}", key, e.getMessage(), e);
-            throw new RuntimeException("Failed to delete file from storage provider", e);
+            throw new StorageException("Failed to delete file from storage provider", e);
         }
     }
 }

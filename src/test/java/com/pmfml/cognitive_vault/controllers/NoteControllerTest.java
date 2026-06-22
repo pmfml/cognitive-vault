@@ -74,6 +74,16 @@ class NoteControllerTest {
     }
 
     @Test
+    void createNote_withBlankTitle_shouldReturnBadRequest() throws Exception {
+        NoteRequest request = new NoteRequest("", "Content", NoteType.TECHNICAL_NOTE, null, null);
+
+        mockMvc.perform(post("/api/v1/notes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void getNoteById_existingId_shouldReturnOk() throws Exception {
         when(noteService.getNoteById(noteId)).thenReturn(noteResponse);
 

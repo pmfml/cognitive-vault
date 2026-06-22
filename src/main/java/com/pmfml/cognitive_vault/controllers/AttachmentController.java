@@ -2,6 +2,7 @@ package com.pmfml.cognitive_vault.controllers;
 
 import com.pmfml.cognitive_vault.dtos.AttachmentResponse;
 import com.pmfml.cognitive_vault.services.AttachmentService;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.UUID;
 
 /**
@@ -46,16 +46,19 @@ public class AttachmentController {
     @PostMapping("/notes/{noteId}/attachments")
     public ResponseEntity<AttachmentResponse> uploadAttachment(
             @PathVariable UUID noteId,
-            @RequestParam("file") MultipartFile file) throws IOException {
+            @RequestParam("file") MultipartFile file) {
 
-        AttachmentResponse response = attachmentService.uploadAttachment(
-                noteId,
-                file.getOriginalFilename(),
-                file.getContentType(),
-                file.getBytes()
-        );
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            AttachmentResponse response = attachmentService.uploadAttachment(
+                    noteId,
+                    file.getOriginalFilename(),
+                    file.getContentType(),
+                    file.getBytes()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (java.io.IOException e) {
+            throw new IllegalArgumentException("Failed to read uploaded file content", e);
+        }
     }
 
     /**
@@ -83,9 +86,13 @@ public class AttachmentController {
 
         MediaType mediaType = MediaType.parseMediaType(metadata.contentType());
 
+        ContentDisposition disposition = ContentDisposition.attachment()
+                .filename(metadata.fileName())
+                .build();
+
         return ResponseEntity.ok()
                 .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + metadata.fileName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(content);
     }
 

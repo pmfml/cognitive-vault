@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 @Service
 public class RelationshipService {
 
+    private static final int CANDIDATE_POOL_SIZE = 15;
+    private static final int MAX_RELATIONSHIPS = 5;
+
     private final RelationshipRepository relationshipRepository;
     private final NoteRepository noteRepository;
 
@@ -39,8 +42,8 @@ public class RelationshipService {
         relationshipRepository.deleteBySourceNoteId(note.getId());
 
         // 2. Retrieve candidate notes (e.g. up to 15 closest) excluding self
-        String vectorStr = toVectorString(note.getEmbedding());
-        List<Note> candidates = noteRepository.findSimilarNotesExcludingSelf(vectorStr, note.getId(), 15);
+        String vectorStr = VectorUtils.toVectorString(note.getEmbedding());
+        List<Note> candidates = noteRepository.findSimilarNotesExcludingSelf(vectorStr, note.getId(), CANDIDATE_POOL_SIZE);
 
         // 3. Compute cosine similarity in memory and build Relationship objects
         List<Relationship> relationships = candidates.stream()
@@ -53,7 +56,7 @@ public class RelationshipService {
                             .build();
                 })
                 .sorted((r1, r2) -> Double.compare(r2.getSimilarityScore(), r1.getSimilarityScore()))
-                .limit(5)
+                .limit(MAX_RELATIONSHIPS)
                 .collect(Collectors.toList());
 
         // 4. Save top 5 relationships
@@ -82,15 +85,6 @@ public class RelationshipService {
     }
 
     private String toVectorString(float[] vector) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < vector.length; i++) {
-            sb.append(vector[i]);
-            if (i < vector.length - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
+        return VectorUtils.toVectorString(vector);
     }
 }

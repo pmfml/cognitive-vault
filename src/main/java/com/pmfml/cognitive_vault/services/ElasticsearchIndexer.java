@@ -8,7 +8,6 @@ import com.pmfml.cognitive_vault.repositories.elasticsearch.NoteDocumentReposito
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.Set;
@@ -34,7 +33,6 @@ public class ElasticsearchIndexer {
      *
      * @param note the JPA Note entity
      */
-    @Transactional(readOnly = true)
     public void indexNote(Note note) {
         if (note == null) {
             return;

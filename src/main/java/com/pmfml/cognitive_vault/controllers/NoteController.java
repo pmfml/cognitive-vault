@@ -4,6 +4,7 @@ import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
 import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.services.NoteService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,7 @@ public class NoteController {
     }
 
     @PostMapping
-    public ResponseEntity<NoteResponse> createNote(@RequestBody NoteRequest request) {
+    public ResponseEntity<NoteResponse> createNote(@Valid @RequestBody NoteRequest request) {
         NoteResponse response = noteService.createNote(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -61,7 +62,7 @@ public class NoteController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<NoteResponse> updateNote(@PathVariable UUID id, @RequestBody NoteRequest request) {
+    public ResponseEntity<NoteResponse> updateNote(@PathVariable UUID id, @Valid @RequestBody NoteRequest request) {
         NoteResponse response = noteService.updateNote(id, request);
         return ResponseEntity.ok(response);
     }

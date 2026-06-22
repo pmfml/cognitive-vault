@@ -4,7 +4,6 @@ import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
 import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.entities.Note;
-import com.pmfml.cognitive_vault.entities.Relationship;
 import com.pmfml.cognitive_vault.entities.Tag;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
@@ -27,6 +26,9 @@ import java.util.stream.Collectors;
  */
 @Service
 public class NoteService {
+
+    private static final int INITIAL_REVIEW_THRESHOLD_DAYS = 1;
+    private static final int PERIODIC_REVIEW_THRESHOLD_DAYS = 30;
 
     private final NoteRepository noteRepository;
     private final TagRepository tagRepository;
@@ -54,13 +56,6 @@ public class NoteService {
      */
     @Transactional
     public NoteResponse createNote(NoteRequest request) {
-        if (request.title() == null || request.title().isBlank()) {
-            throw new IllegalArgumentException("Note title cannot be empty");
-        }
-        if (request.content() == null || request.content().isBlank()) {
-            throw new IllegalArgumentException("Note content cannot be empty");
-        }
-
         Set<Tag> resolvedTags = resolveTags(request.tags());
 
         String textToEmbed = request.title() + "\n" + request.content();
@@ -79,7 +74,7 @@ public class NoteService {
         Note savedNote = noteRepository.save(note);
         relationshipService.recalculateRelationships(savedNote);
         elasticsearchIndexer.indexNote(savedNote);
-        return mapToResponse(savedNote);
+        return NoteMapper.toResponse(savedNote);
     }
 
     /**
@@ -92,7 +87,7 @@ public class NoteService {
 
         note.setLastAccessedAt(Instant.now());
         Note updatedNote = noteRepository.save(note);
-        return mapToResponse(updatedNote);
+        return NoteMapper.toResponse(updatedNote);
     }
 
     /**
@@ -101,7 +96,7 @@ public class NoteService {
     @Transactional(readOnly = true)
     public List<NoteResponse> getAllNotes() {
         return noteRepository.findAll().stream()
-                .map(this::mapToResponse)
+                .map(NoteMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -112,13 +107,6 @@ public class NoteService {
     public NoteResponse updateNote(UUID id, NoteRequest request) {
         Note note = noteRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + id));
-
-        if (request.title() == null || request.title().isBlank()) {
-            throw new IllegalArgumentException("Note title cannot be empty");
-        }
-        if (request.content() == null || request.content().isBlank()) {
-            throw new IllegalArgumentException("Note content cannot be empty");
-        }
 
         note.setTitle(request.title());
         note.setContent(request.content());
@@ -135,7 +123,7 @@ public class NoteService {
         Note updatedNote = noteRepository.save(note);
         relationshipService.recalculateRelationships(updatedNote);
         elasticsearchIndexer.indexNote(updatedNote);
-        return mapToResponse(updatedNote);
+        return NoteMapper.toResponse(updatedNote);
     }
 
     /**
@@ -149,7 +137,7 @@ public class NoteService {
         return relationshipRepository.findBySourceNoteId(id).stream()
                 .map(rel -> new RelationshipResponse(
                         rel.getId(),
-                        mapToResponse(rel.getTargetNote()),
+                        NoteMapper.toResponse(rel.getTargetNote()),
                         rel.getSimilarityScore()
                 ))
                 .collect(Collectors.toList());
@@ -161,11 +149,11 @@ public class NoteService {
     @Transactional(readOnly = true)
     public List<NoteResponse> getNotesNeedingReview() {
         Instant now = Instant.now();
-        Instant oneDayAgo = now.minus(1, ChronoUnit.DAYS);
-        Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
+        Instant oneDayAgo = now.minus(INITIAL_REVIEW_THRESHOLD_DAYS, ChronoUnit.DAYS);
+        Instant thirtyDaysAgo = now.minus(PERIODIC_REVIEW_THRESHOLD_DAYS, ChronoUnit.DAYS);
 
         return noteRepository.findNotesNeedingReview(oneDayAgo, thirtyDaysAgo).stream()
-                .map(this::mapToResponse)
+                .map(NoteMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -181,7 +169,7 @@ public class NoteService {
         Note updatedNote = noteRepository.save(note);
         elasticsearchIndexer.indexNote(updatedNote);
 
-        return mapToResponse(updatedNote);
+        return NoteMapper.toResponse(updatedNote);
     }
 
     /**
@@ -195,28 +183,6 @@ public class NoteService {
         relationshipRepository.deleteByNoteId(id);
         noteRepository.deleteById(id);
         elasticsearchIndexer.deleteNote(id);
-    }
-
-    /**
-     * Helper method to map a Note entity to a NoteResponse record.
-     */
-    private NoteResponse mapToResponse(Note note) {
-        Set<String> tagNames = note.getTags() != null
-                ? note.getTags().stream().map(Tag::getName).collect(Collectors.toSet())
-                : Set.of();
-
-        return new NoteResponse(
-                note.getId(),
-                note.getTitle(),
-                note.getContent(),
-                note.getType(),
-                note.getLanguage(),
-                note.getSummary(),
-                tagNames,
-                note.getCreatedAt(),
-                note.getLastAccessedAt(),
-                note.getLastReviewedAt()
-        );
     }
 
     /**

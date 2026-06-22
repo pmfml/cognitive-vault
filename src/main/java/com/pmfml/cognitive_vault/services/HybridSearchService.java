@@ -93,14 +93,14 @@ public class HybridSearchService {
         return rankedIds.stream()
                 .map(noteMap::get)
                 .filter(java.util.Objects::nonNull)
-                .map(this::mapToResponse)
+                .map(NoteMapper::toResponse)
                 .collect(Collectors.toList());
     }
 
     private List<Note> getVectorCandidates(String queryText, int candidateLimit) {
         try {
             float[] queryVector = embeddingModel.embed(queryText);
-            String vectorString = toVectorString(queryVector);
+            String vectorString = VectorUtils.toVectorString(queryVector);
             return noteRepository.findSimilarNotes(vectorString, candidateLimit);
         } catch (Exception e) {
             log.error("Failed to perform vector search during hybrid search. Error: {}", e.getMessage());
@@ -150,34 +150,10 @@ public class HybridSearchService {
     }
 
     private String toVectorString(float[] vector) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < vector.length; i++) {
-            sb.append(vector[i]);
-            if (i < vector.length - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append("]");
-        return sb.toString();
+        return VectorUtils.toVectorString(vector);
     }
 
     private NoteResponse mapToResponse(Note note) {
-        Set<String> tagNames = note.getTags() != null
-                ? note.getTags().stream().map(Tag::getName).collect(Collectors.toSet())
-                : new HashSet<>();
-
-        return new NoteResponse(
-                note.getId(),
-                note.getTitle(),
-                note.getContent(),
-                note.getType(),
-                note.getLanguage(),
-                note.getSummary(),
-                tagNames,
-                note.getCreatedAt(),
-                note.getLastAccessedAt(),
-                note.getLastReviewedAt()
-        );
+        return NoteMapper.toResponse(note);
     }
 }

@@ -97,13 +97,10 @@ class NoteServiceTest {
         verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
     }
 
-    @Test
-    void createNote_withInvalidTitle_shouldThrowException() {
-        NoteRequest request = new NoteRequest("", "Content", NoteType.TECHNICAL_NOTE, null, null);
+    // Note: input validation (blank title, blank content) is enforced by
+    // Jakarta Bean Validation (@NotBlank) at the controller layer via @Valid.
+    // Those validations are covered by NoteControllerTest via MockMvc.
 
-        assertThrows(IllegalArgumentException.class, () -> noteService.createNote(request));
-        verify(noteRepository, never()).save(any(Note.class));
-    }
 
     @Test
     void getNoteById_existingNote_shouldUpdateAccessedTimestampAndReturnResponse() {
