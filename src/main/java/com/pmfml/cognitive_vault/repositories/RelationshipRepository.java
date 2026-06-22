@@ -21,4 +21,8 @@ public interface RelationshipRepository extends JpaRepository<Relationship, UUID
     @Modifying
     @Query("DELETE FROM Relationship r WHERE r.sourceNote.id = :noteId OR r.targetNote.id = :noteId")
     void deleteByNoteId(@Param("noteId") UUID noteId);
+
+    @Modifying
+    @Query("DELETE FROM Relationship r WHERE r.sourceNote.id = :sourceNoteId")
+    void deleteBySourceNoteId(@Param("sourceNoteId") UUID sourceNoteId);
 }

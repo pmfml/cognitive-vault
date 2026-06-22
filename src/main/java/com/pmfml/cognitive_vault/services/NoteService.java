@@ -30,17 +30,20 @@ public class NoteService {
     private final RelationshipRepository relationshipRepository;
     private final EmbeddingModel embeddingModel;
     private final ElasticsearchIndexer elasticsearchIndexer;
+    private final RelationshipService relationshipService;
 
     public NoteService(NoteRepository noteRepository,
                        TagRepository tagRepository,
                        RelationshipRepository relationshipRepository,
                        EmbeddingModel embeddingModel,
-                       ElasticsearchIndexer elasticsearchIndexer) {
+                       ElasticsearchIndexer elasticsearchIndexer,
+                       RelationshipService relationshipService) {
         this.noteRepository = noteRepository;
         this.tagRepository = tagRepository;
         this.relationshipRepository = relationshipRepository;
         this.embeddingModel = embeddingModel;
         this.elasticsearchIndexer = elasticsearchIndexer;
+        this.relationshipService = relationshipService;
     }
 
     /**
@@ -71,6 +74,7 @@ public class NoteService {
                 .build();
 
         Note savedNote = noteRepository.save(note);
+        relationshipService.recalculateRelationships(savedNote);
         elasticsearchIndexer.indexNote(savedNote);
         return mapToResponse(savedNote);
     }
@@ -126,6 +130,7 @@ public class NoteService {
         note.setLastAccessedAt(Instant.now());
 
         Note updatedNote = noteRepository.save(note);
+        relationshipService.recalculateRelationships(updatedNote);
         elasticsearchIndexer.indexNote(updatedNote);
         return mapToResponse(updatedNote);
     }

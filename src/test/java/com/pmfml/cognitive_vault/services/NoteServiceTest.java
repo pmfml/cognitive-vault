@@ -45,6 +45,9 @@ class NoteServiceTest {
     @Mock
     private ElasticsearchIndexer elasticsearchIndexer;
 
+    @Mock
+    private RelationshipService relationshipService;
+
     @InjectMocks
     private NoteService noteService;
 
@@ -88,6 +91,7 @@ class NoteServiceTest {
         assertTrue(response.tags().contains("java"));
         assertTrue(response.tags().contains("spring"));
         verify(noteRepository, times(1)).save(any(Note.class));
+        verify(relationshipService, times(1)).recalculateRelationships(any(Note.class));
         verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
     }
 
@@ -149,6 +153,7 @@ class NoteServiceTest {
         assertEquals(NoteType.CODE_SNIPPET, response.type());
         assertEquals("java", response.language());
         verify(noteRepository, times(1)).save(any(Note.class));
+        verify(relationshipService, times(1)).recalculateRelationships(any(Note.class));
         verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
     }
 
