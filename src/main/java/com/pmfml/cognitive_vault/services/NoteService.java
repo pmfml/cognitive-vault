@@ -2,7 +2,9 @@ package com.pmfml.cognitive_vault.services;
 
 import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
+import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.entities.Note;
+import com.pmfml.cognitive_vault.entities.Relationship;
 import com.pmfml.cognitive_vault.entities.Tag;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
@@ -133,6 +135,23 @@ public class NoteService {
         relationshipService.recalculateRelationships(updatedNote);
         elasticsearchIndexer.indexNote(updatedNote);
         return mapToResponse(updatedNote);
+    }
+
+    /**
+     * Retrieves related notes based on pre-calculated semantic relationships.
+     */
+    @Transactional(readOnly = true)
+    public List<RelationshipResponse> getRelatedNotes(UUID id) {
+        if (!noteRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Note not found with id: " + id);
+        }
+        return relationshipRepository.findBySourceNoteId(id).stream()
+                .map(rel -> new RelationshipResponse(
+                        rel.getId(),
+                        mapToResponse(rel.getTargetNote()),
+                        rel.getSimilarityScore()
+                ))
+                .collect(Collectors.toList());
     }
 
     /**

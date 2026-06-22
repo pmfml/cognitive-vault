@@ -2,8 +2,10 @@ package com.pmfml.cognitive_vault.services;
 
 import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
+import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.entities.Note;
 import com.pmfml.cognitive_vault.entities.NoteType;
+import com.pmfml.cognitive_vault.entities.Relationship;
 import com.pmfml.cognitive_vault.entities.Tag;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
@@ -155,6 +157,31 @@ class NoteServiceTest {
         verify(noteRepository, times(1)).save(any(Note.class));
         verify(relationshipService, times(1)).recalculateRelationships(any(Note.class));
         verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
+    }
+
+    @Test
+    void getRelatedNotes_existingNote_shouldReturnRelationships() {
+        when(noteRepository.existsById(noteId)).thenReturn(true);
+        Relationship rel = Relationship.builder()
+                .id(UUID.randomUUID())
+                .sourceNote(note)
+                .targetNote(note)
+                .similarityScore(0.95)
+                .build();
+        when(relationshipRepository.findBySourceNoteId(noteId)).thenReturn(List.of(rel));
+
+        List<RelationshipResponse> responses = noteService.getRelatedNotes(noteId);
+
+        assertEquals(1, responses.size());
+        assertEquals(0.95, responses.get(0).similarityScore());
+    }
+
+    @Test
+    void getRelatedNotes_nonExistingNote_shouldThrowException() {
+        when(noteRepository.existsById(noteId)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> noteService.getRelatedNotes(noteId));
+        verify(relationshipRepository, never()).findBySourceNoteId(any(UUID.class));
     }
 
     @Test

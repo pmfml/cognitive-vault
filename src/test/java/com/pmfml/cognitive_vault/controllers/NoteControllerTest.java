@@ -3,6 +3,7 @@ package com.pmfml.cognitive_vault.controllers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
+import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.entities.NoteType;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.services.NoteService;
@@ -126,6 +127,22 @@ class NoteControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Updated Title"))
                 .andExpect(jsonPath("$.content").value("Updated Content"));
+    }
+
+    @Test
+    void getRelatedNotes_shouldReturnList() throws Exception {
+        RelationshipResponse relResponse = new RelationshipResponse(
+                UUID.randomUUID(),
+                noteResponse,
+                0.95
+        );
+        when(noteService.getRelatedNotes(noteId)).thenReturn(List.of(relResponse));
+
+        mockMvc.perform(get("/api/v1/notes/{id}/relationships", noteId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].similarityScore").value(0.95))
+                .andExpect(jsonPath("$[0].targetNote.title").value("Test Title"));
     }
 
     @Test

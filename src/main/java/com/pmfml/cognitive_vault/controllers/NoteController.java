@@ -2,6 +2,7 @@ package com.pmfml.cognitive_vault.controllers;
 
 import com.pmfml.cognitive_vault.dtos.NoteRequest;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
+import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.services.NoteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,12 @@ public class NoteController {
     @GetMapping("/{id}")
     public ResponseEntity<NoteResponse> getNoteById(@PathVariable UUID id) {
         NoteResponse response = noteService.getNoteById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/relationships")
+    public ResponseEntity<List<RelationshipResponse>> getRelatedNotes(@PathVariable UUID id) {
+        List<RelationshipResponse> response = noteService.getRelatedNotes(id);
         return ResponseEntity.ok(response);
     }
 
