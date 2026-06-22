@@ -44,4 +44,19 @@ public interface NoteRepository extends JpaRepository<Note, UUID> {
             @Param("excludeNoteId") UUID excludeNoteId,
             @Param("limit") int limit
     );
+
+    /**
+     * Finds notes that require study/review based on three decay rules:
+     * 1. Never reviewed and created > 24 hours ago
+     * 2. Accessed recently after the last review
+     * 3. Last reviewed > 30 days ago
+     */
+    @Query("SELECT n FROM Note n WHERE " +
+           "(n.lastReviewedAt IS NULL AND n.createdAt < :oneDayAgo) OR " +
+           "(n.lastReviewedAt IS NOT NULL AND n.lastAccessedAt > n.lastReviewedAt) OR " +
+           "(n.lastReviewedAt < :thirtyDaysAgo)")
+    List<Note> findNotesNeedingReview(
+            @Param("oneDayAgo") java.time.Instant oneDayAgo,
+            @Param("thirtyDaysAgo") java.time.Instant thirtyDaysAgo
+    );
 }

@@ -185,6 +185,39 @@ class NoteServiceTest {
     }
 
     @Test
+    void getNotesNeedingReview_shouldReturnList() {
+        when(noteRepository.findNotesNeedingReview(any(Instant.class), any(Instant.class))).thenReturn(List.of(note));
+
+        List<NoteResponse> responses = noteService.getNotesNeedingReview();
+
+        assertEquals(1, responses.size());
+        assertEquals("Original Title", responses.get(0).title());
+    }
+
+    @Test
+    void reviewNote_existingNote_shouldUpdateTimestampAndReturnResponse() {
+        when(noteRepository.findById(noteId)).thenReturn(Optional.of(note));
+        when(noteRepository.save(any(Note.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Instant beforeReview = Instant.now();
+        NoteResponse response = noteService.reviewNote(noteId);
+
+        assertNotNull(response);
+        assertNotNull(response.lastReviewedAt());
+        assertTrue(response.lastReviewedAt().isAfter(beforeReview) || response.lastReviewedAt().equals(beforeReview));
+        verify(noteRepository, times(1)).save(any(Note.class));
+        verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
+    }
+
+    @Test
+    void reviewNote_nonExistingNote_shouldThrowException() {
+        when(noteRepository.findById(noteId)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> noteService.reviewNote(noteId));
+        verify(noteRepository, never()).save(any(Note.class));
+    }
+
+    @Test
     void deleteNote_existingNote_shouldInvokeDeletes() {
         when(noteRepository.existsById(noteId)).thenReturn(true);
 

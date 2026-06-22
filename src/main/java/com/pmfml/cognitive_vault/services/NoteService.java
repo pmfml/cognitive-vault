@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -152,6 +153,35 @@ public class NoteService {
                         rel.getSimilarityScore()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Retrieves notes that are pending for review based on decay rules.
+     */
+    @Transactional(readOnly = true)
+    public List<NoteResponse> getNotesNeedingReview() {
+        Instant now = Instant.now();
+        Instant oneDayAgo = now.minus(1, ChronoUnit.DAYS);
+        Instant thirtyDaysAgo = now.minus(30, ChronoUnit.DAYS);
+
+        return noteRepository.findNotesNeedingReview(oneDayAgo, thirtyDaysAgo).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Marks a note as reviewed by updating the lastReviewedAt timestamp.
+     */
+    @Transactional
+    public NoteResponse reviewNote(UUID id) {
+        Note note = noteRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Note not found with id: " + id));
+
+        note.setLastReviewedAt(Instant.now());
+        Note updatedNote = noteRepository.save(note);
+        elasticsearchIndexer.indexNote(updatedNote);
+
+        return mapToResponse(updatedNote);
     }
 
     /**
