@@ -42,6 +42,18 @@ public class NoteController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/review-pending")
+    public ResponseEntity<List<NoteResponse>> getNotesNeedingReview() {
+        List<NoteResponse> response = noteService.getNotesNeedingReview();
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/review")
+    public ResponseEntity<NoteResponse> reviewNote(@PathVariable UUID id) {
+        NoteResponse response = noteService.reviewNote(id);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping
     public ResponseEntity<List<NoteResponse>> getAllNotes() {
         List<NoteResponse> response = noteService.getAllNotes();

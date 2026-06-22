@@ -146,6 +146,25 @@ class NoteControllerTest {
     }
 
     @Test
+    void getNotesNeedingReview_shouldReturnList() throws Exception {
+        when(noteService.getNotesNeedingReview()).thenReturn(List.of(noteResponse));
+
+        mockMvc.perform(get("/api/v1/notes/review-pending"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].title").value("Test Title"));
+    }
+
+    @Test
+    void reviewNote_shouldReturnUpdatedNote() throws Exception {
+        when(noteService.reviewNote(noteId)).thenReturn(noteResponse);
+
+        mockMvc.perform(post("/api/v1/notes/{id}/review", noteId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Test Title"));
+    }
+
+    @Test
     void deleteNote_existingId_shouldReturnNoContent() throws Exception {
         mockMvc.perform(delete("/api/v1/notes/{id}", noteId))
                 .andExpect(status().isNoContent());
