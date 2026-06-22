@@ -12,6 +12,7 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,7 +53,7 @@ public class HybridSearchService {
      * @param limit     the maximum number of results to return
      * @return a list of ranked NoteResponse objects
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public List<NoteResponse> search(String queryText, int limit) {
         if (queryText == null || queryText.isBlank()) {
             log.info("Empty query text provided for hybrid search. Returning empty results.");
@@ -80,6 +81,12 @@ public class HybridSearchService {
 
         // 4. Fetch from database preserving exact RRF order
         List<Note> notes = noteRepository.findAllById(rankedIds);
+
+        // Update transparent audit access timestamp
+        Instant now = Instant.now();
+        notes.forEach(note -> note.setLastAccessedAt(now));
+        noteRepository.saveAll(notes);
+
         Map<UUID, Note> noteMap = notes.stream()
                 .collect(Collectors.toMap(Note::getId, note -> note));
 

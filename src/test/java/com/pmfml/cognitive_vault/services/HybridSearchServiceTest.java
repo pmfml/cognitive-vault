@@ -20,10 +20,14 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 class HybridSearchServiceTest {
@@ -100,12 +104,19 @@ class HybridSearchServiceTest {
         when(noteRepository.findAllById(any())).thenReturn(List.of(noteA, noteB));
 
         // Act
+        Instant beforeSearch = Instant.now();
         List<NoteResponse> responses = hybridSearchService.search("query", 2);
 
         // Assert
         assertEquals(2, responses.size());
         assertEquals(idA, responses.get(0).id());
         assertEquals(idB, responses.get(1).id());
+
+        // Verify Audit Hook
+        assertNotNull(noteA.getLastAccessedAt());
+        assertNotNull(noteB.getLastAccessedAt());
+        assertTrue(noteA.getLastAccessedAt().isAfter(beforeSearch) || noteA.getLastAccessedAt().equals(beforeSearch));
+        verify(noteRepository, times(1)).saveAll(anyList());
     }
 
     @Test
@@ -119,11 +130,18 @@ class HybridSearchServiceTest {
         when(noteRepository.findAllById(any())).thenReturn(List.of(noteB, noteA));
 
         // Act
+        Instant beforeSearch = Instant.now();
         List<NoteResponse> responses = hybridSearchService.search("query", 2);
 
         // Assert
         assertEquals(2, responses.size());
         assertEquals(idB, responses.get(0).id());
         assertEquals(idA, responses.get(1).id());
+
+        // Verify Audit Hook
+        assertNotNull(noteA.getLastAccessedAt());
+        assertNotNull(noteB.getLastAccessedAt());
+        assertTrue(noteB.getLastAccessedAt().isAfter(beforeSearch) || noteB.getLastAccessedAt().equals(beforeSearch));
+        verify(noteRepository, times(1)).saveAll(anyList());
     }
 }
