@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles } from 'lucide-react';
+import { HybridSearch } from './components/HybridSearch';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'review' | 'all' | 'create'>('search');
@@ -91,17 +92,7 @@ function App() {
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-4xl mx-auto w-full">
             {activeTab === 'search' && (
-              <div className="flex flex-col gap-6 justify-center items-center h-[50vh] text-center">
-                <div className="p-4 bg-bg-sidebar rounded-2xl border border-border-notion">
-                  <Search className="w-8 h-8 text-text-notion-muted mx-auto" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-text-notion mb-1">Hybrid Search Module</h2>
-                  <p className="text-sm text-text-notion-muted max-w-md mx-auto">
-                    Here you will be able to perform textual (Elasticsearch) and semantic (pgvector) searches integrated via RRF. The main screen and search layout will be configured in the next step.
-                  </p>
-                </div>
-              </div>
+              <HybridSearch />
             )}
 
             {activeTab === 'review' && (
