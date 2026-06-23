@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -59,6 +60,18 @@ public class AttachmentController {
         } catch (java.io.IOException e) {
             throw new IllegalArgumentException("Failed to read uploaded file content", e);
         }
+    }
+
+    /**
+     * Retrieves all attachments linked to a specific note.
+     *
+     * @param noteId the parent note ID
+     * @return list of attachment metadata details
+     */
+    @GetMapping("/notes/{noteId}/attachments")
+    public ResponseEntity<List<AttachmentResponse>> getAttachmentsByNoteId(@PathVariable UUID noteId) {
+        List<AttachmentResponse> responses = attachmentService.getAttachmentsByNoteId(noteId);
+        return ResponseEntity.ok(responses);
     }
 
     /**

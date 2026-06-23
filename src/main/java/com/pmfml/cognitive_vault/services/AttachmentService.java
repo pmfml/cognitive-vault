@@ -11,7 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Service handling business logic for Note attachments.
@@ -123,6 +125,21 @@ public class AttachmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Attachment not found with id: " + attachmentId));
 
         return mapToResponse(attachment);
+    }
+
+    /**
+     * Retrieves all attachments linked to a specific note.
+     *
+     * @param noteId the parent note ID
+     * @return a list of attachment response DTOs
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> getAttachmentsByNoteId(UUID noteId) {
+        log.info("Retrieving attachments for note ID: {}", noteId);
+        List<Attachment> attachments = attachmentRepository.findByNoteId(noteId);
+        return attachments.stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
