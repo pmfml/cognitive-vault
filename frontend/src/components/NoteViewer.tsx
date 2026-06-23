@@ -1,7 +1,9 @@
 
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { NoteResponse } from '../types';
-import { X, Calendar, Target, FileText, Code2, Link, Paperclip } from 'lucide-react';
+import type { NoteResponse, AttachmentResponse, RelationshipResponse } from '../types';
+import { api } from '../services/api';
+import { X, Calendar, Target, FileText, Code2, Link, Paperclip, Loader2, Download } from 'lucide-react';
 
 interface NoteViewerProps {
   note: NoteResponse;
@@ -10,6 +12,29 @@ interface NoteViewerProps {
 }
 
 export function NoteViewer({ note, onClose, rrfRank }: NoteViewerProps) {
+  const [attachments, setAttachments] = useState<AttachmentResponse[]>([]);
+  const [relatedNotes, setRelatedNotes] = useState<RelationshipResponse[]>([]);
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
+
+  useEffect(() => {
+    async function fetchContext() {
+      setIsLoadingContext(true);
+      try {
+        const [attData, relData] = await Promise.all([
+          api.getAttachmentsByNoteId(note.id),
+          api.getRelatedNotes(note.id)
+        ]);
+        setAttachments(attData || []);
+        setRelatedNotes(relData || []);
+      } catch (err) {
+        console.error("Failed to fetch note context", err);
+      } finally {
+        setIsLoadingContext(false);
+      }
+    }
+    fetchContext();
+  }, [note.id]);
+
   const formattedDate = new Date(note.createdAt).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'long',
@@ -89,9 +114,33 @@ export function NoteViewer({ note, onClose, rrfRank }: NoteViewerProps) {
               <Paperclip className="w-3.5 h-3.5" />
               Attachments
             </h3>
-            <div className="text-sm text-text-notion border border-border-notion border-dashed rounded-lg p-4 text-center bg-bg-app/50">
-              Fetching attachments...
-            </div>
+            {isLoadingContext ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="w-5 h-5 text-text-notion-muted animate-spin" />
+              </div>
+            ) : attachments.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {attachments.map((att) => (
+                  <a 
+                    key={att.id}
+                    href={api.getAttachmentDownloadUrl(att.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-2.5 bg-bg-card border border-border-notion rounded-lg hover:border-brand-blue/30 transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Paperclip className="w-4 h-4 text-text-notion-muted shrink-0" />
+                      <span className="text-xs font-medium truncate text-text-notion">{att.fileName}</span>
+                    </div>
+                    <Download className="w-3.5 h-3.5 text-text-notion-muted opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-text-notion-muted border border-border-notion border-dashed rounded-lg p-3 text-center bg-bg-app/50">
+                No attachments found.
+              </div>
+            )}
           </div>
 
           {/* Related Notes Section */}
@@ -100,9 +149,36 @@ export function NoteViewer({ note, onClose, rrfRank }: NoteViewerProps) {
               <Link className="w-3.5 h-3.5" />
               Semantic Relationships
             </h3>
-            <div className="text-sm text-text-notion border border-border-notion border-dashed rounded-lg p-4 text-center bg-bg-app/50">
-              Calculating vectors...
-            </div>
+            {isLoadingContext ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="w-5 h-5 text-text-notion-muted animate-spin" />
+              </div>
+            ) : relatedNotes.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {relatedNotes.map((rel) => (
+                  <div 
+                    key={rel.relationshipId}
+                    className="flex flex-col gap-1.5 p-3 bg-bg-card border border-border-notion rounded-lg hover:border-brand-blue/30 transition-colors cursor-pointer group"
+                  >
+                    <h4 className="text-xs font-medium text-text-notion leading-tight group-hover:text-brand-blue transition-colors">
+                      {rel.targetNote.title}
+                    </h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-text-notion-muted tracking-wide uppercase">
+                        {rel.targetNote.type === 'CODE_SNIPPET' ? 'Snippet' : 'Note'}
+                      </span>
+                      <span className="text-[10px] font-semibold bg-bg-sidebar px-1.5 py-0.5 rounded border border-border-notion text-text-notion-muted">
+                        {Math.round(rel.similarityScore * 100)}% match
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-xs text-text-notion-muted border border-border-notion border-dashed rounded-lg p-3 text-center bg-bg-app/50">
+                No related notes found.
+              </div>
+            )}
           </div>
 
         </div>

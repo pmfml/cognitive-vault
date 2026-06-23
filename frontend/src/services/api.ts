@@ -102,6 +102,11 @@ export const api = {
     return handleResponse<AttachmentResponse>(response);
   },
 
+  async getAttachmentsByNoteId(noteId: string): Promise<AttachmentResponse[]> {
+    const response = await fetch(`${BASE_URL}/notes/${noteId}/attachments`);
+    return handleResponse<AttachmentResponse[]>(response);
+  },
+
   async deleteAttachment(id: string): Promise<void> {
     const response = await fetch(`${BASE_URL}/attachments/${id}`, {
       method: 'DELETE',

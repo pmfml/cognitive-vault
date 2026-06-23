@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles } from 'lucide-react';
 import { HybridSearch } from './components/HybridSearch';
+import { NoteViewer } from './components/NoteViewer';
+import type { NoteResponse } from './types';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'review' | 'all' | 'create'>('search');
+  const [selectedNote, setSelectedNote] = useState<{note: NoteResponse, rank?: number} | null>(null);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-notion font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-notion font-sans relative">
       {/* Sidebar */}
       <aside className="w-64 border-r border-border-notion bg-bg-sidebar flex flex-col justify-between shrink-0 select-none">
         <div className="p-4 flex flex-col gap-6">
@@ -78,7 +81,7 @@ function App() {
       </aside>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex flex-col overflow-hidden bg-bg-card">
+      <main className="flex-1 flex flex-col overflow-hidden bg-bg-card relative">
         {/* Workspace Top Header */}
         <header className="h-14 border-b border-border-notion flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-2">
@@ -89,10 +92,10 @@ function App() {
         </header>
 
         {/* Workspace Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8 relative">
           <div className="max-w-4xl mx-auto w-full">
             {activeTab === 'search' && (
-              <HybridSearch />
+              <HybridSearch onNoteClick={(note, rank) => setSelectedNote({ note, rank })} />
             )}
 
             {activeTab === 'review' && (
@@ -138,6 +141,17 @@ function App() {
             )}
           </div>
         </div>
+
+        {/* NoteViewer Overlay */}
+        {selectedNote && (
+          <div className="absolute inset-0 z-50 bg-bg-app animate-in fade-in zoom-in-95 duration-200">
+            <NoteViewer 
+              note={selectedNote.note} 
+              rrfRank={selectedNote.rank}
+              onClose={() => setSelectedNote(null)} 
+            />
+          </div>
+        )}
       </main>
     </div>
   );

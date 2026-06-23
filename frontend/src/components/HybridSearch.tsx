@@ -5,7 +5,11 @@ import { SearchBar } from './SearchBar';
 import { NoteCard } from './NoteCard';
 import { AlertCircle, Sparkles } from 'lucide-react';
 
-export function HybridSearch() {
+interface HybridSearchProps {
+  onNoteClick: (note: NoteResponse, rank: number) => void;
+}
+
+export function HybridSearch({ onNoteClick }: HybridSearchProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [results, setResults] = useState<NoteResponse[]>([]);
@@ -89,6 +93,7 @@ export function HybridSearch() {
             key={note.id} 
             note={note} 
             rrfRank={index + 1} // The array order maps exactly to the RRF rank calculated in the backend!
+            onClick={() => onNoteClick(note, index + 1)}
           />
         ))}
       </div>
