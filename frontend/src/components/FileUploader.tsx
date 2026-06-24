@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { api } from '../services/api';
 import { UploadCloud, File, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export type FileStatus = 'pending' | 'uploading' | 'success' | 'error';
@@ -55,10 +56,34 @@ export function FileUploader({ noteId, onUploadComplete }: FileUploaderProps) {
     setFiles(prev => prev.filter(f => f.id !== id));
   };
 
-  const handleUploadClick = () => {
-    // Logic to be implemented in 6.2.2
-    console.log("Starting upload for noteId:", noteId, files);
-    if (onUploadComplete) onUploadComplete();
+  const updateFileStatus = (id: string, status: FileStatus) => {
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, status } : f));
+  };
+
+  const handleUploadClick = async () => {
+    const filesToUpload = files.filter(f => f.status === 'pending' || f.status === 'error');
+    if (filesToUpload.length === 0) return;
+
+    let hasError = false;
+
+    // Upload files in parallel
+    const promises = filesToUpload.map(async (item) => {
+      updateFileStatus(item.id, 'uploading');
+      try {
+        await api.uploadAttachment(noteId, item.file);
+        updateFileStatus(item.id, 'success');
+      } catch (err) {
+        console.error(`Error uploading ${item.file.name}:`, err);
+        updateFileStatus(item.id, 'error');
+        hasError = true;
+      }
+    });
+
+    await Promise.all(promises);
+
+    if (!hasError && onUploadComplete) {
+      onUploadComplete();
+    }
   };
 
   return (
