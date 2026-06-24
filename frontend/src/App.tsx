@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles } from 'lucide-react';
 import { HybridSearch } from './components/HybridSearch';
 import { NoteViewer } from './components/NoteViewer';
+import { NoteEditor } from './components/NoteEditor';
 import type { NoteResponse } from './types';
 
 function App() {
@@ -127,17 +128,7 @@ function App() {
             )}
 
             {activeTab === 'create' && (
-              <div className="flex flex-col gap-6 justify-center items-center h-[50vh] text-center">
-                <div className="p-4 bg-bg-sidebar rounded-2xl border border-border-notion">
-                  <PlusCircle className="w-8 h-8 text-text-notion-muted mx-auto" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-text-notion mb-1">Create New Note</h2>
-                  <p className="text-sm text-text-notion-muted max-w-md mx-auto">
-                    Form to register technical notes and code snippets.
-                  </p>
-                </div>
-              </div>
+              <NoteEditor onSaveSuccess={() => setActiveTab('search')} />
             )}
           </div>
         </div>
