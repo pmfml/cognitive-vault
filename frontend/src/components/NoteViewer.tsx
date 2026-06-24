@@ -3,7 +3,8 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { NoteResponse, AttachmentResponse, RelationshipResponse } from '../types';
 import { api } from '../services/api';
-import { X, Calendar, Target, FileText, Code2, Link, Paperclip, Loader2, Download } from 'lucide-react';
+import { X, Calendar, Target, FileText, Code2, Link, Paperclip, Loader2, Download, Plus } from 'lucide-react';
+import { FileUploader } from './FileUploader';
 
 interface NoteViewerProps {
   note: NoteResponse;
@@ -15,23 +16,25 @@ export function NoteViewer({ note, onClose, rrfRank }: NoteViewerProps) {
   const [attachments, setAttachments] = useState<AttachmentResponse[]>([]);
   const [relatedNotes, setRelatedNotes] = useState<RelationshipResponse[]>([]);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
+  const [isUploadingMode, setIsUploadingMode] = useState(false);
+
+  const fetchContext = async () => {
+    setIsLoadingContext(true);
+    try {
+      const [attData, relData] = await Promise.all([
+        api.getAttachmentsByNoteId(note.id),
+        api.getRelatedNotes(note.id)
+      ]);
+      setAttachments(attData || []);
+      setRelatedNotes(relData || []);
+    } catch (err) {
+      console.error("Failed to fetch note context", err);
+    } finally {
+      setIsLoadingContext(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchContext() {
-      setIsLoadingContext(true);
-      try {
-        const [attData, relData] = await Promise.all([
-          api.getAttachmentsByNoteId(note.id),
-          api.getRelatedNotes(note.id)
-        ]);
-        setAttachments(attData || []);
-        setRelatedNotes(relData || []);
-      } catch (err) {
-        console.error("Failed to fetch note context", err);
-      } finally {
-        setIsLoadingContext(false);
-      }
-    }
     fetchContext();
   }, [note.id]);
 
@@ -110,11 +113,39 @@ export function NoteViewer({ note, onClose, rrfRank }: NoteViewerProps) {
           
           {/* Attachments Section */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-notion-muted flex items-center gap-2">
-              <Paperclip className="w-3.5 h-3.5" />
-              Attachments
-            </h3>
-            {isLoadingContext ? (
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-text-notion-muted flex items-center gap-2">
+                <Paperclip className="w-3.5 h-3.5" />
+                Attachments
+              </h3>
+              {!isUploadingMode && (
+                <button 
+                  onClick={() => setIsUploadingMode(true)}
+                  className="text-text-notion-muted hover:text-brand-blue"
+                  title="Upload new attachment"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {isUploadingMode ? (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <FileUploader 
+                  noteId={note.id} 
+                  onUploadComplete={() => {
+                    setIsUploadingMode(false);
+                    fetchContext(); // Refresh the list
+                  }} 
+                />
+                <button 
+                  onClick={() => setIsUploadingMode(false)}
+                  className="w-full mt-2 py-1.5 text-xs text-text-notion-muted hover:text-text-notion transition-colors"
+                >
+                  Cancel Upload
+                </button>
+              </div>
+            ) : isLoadingContext ? (
               <div className="flex justify-center p-4">
                 <Loader2 className="w-5 h-5 text-text-notion-muted animate-spin" />
               </div>

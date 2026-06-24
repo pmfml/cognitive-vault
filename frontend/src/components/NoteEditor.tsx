@@ -2,7 +2,8 @@ import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../services/api';
 import type { NoteRequest, NoteType } from '../types';
-import { Save, AlertCircle, Loader2, X, Plus } from 'lucide-react';
+import { Save, AlertCircle, Loader2, X, Plus, CheckCircle2 } from 'lucide-react';
+import { FileUploader } from './FileUploader';
 
 interface NoteEditorProps {
   onSaveSuccess: () => void;
@@ -18,6 +19,7 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
   const [tagInput, setTagInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createdNoteId, setCreatedNoteId] = useState<string | null>(null);
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim();
@@ -57,8 +59,8 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
     };
 
     try {
-      await api.createNote(payload);
-      onSaveSuccess();
+      const response = await api.createNote(payload);
+      setCreatedNoteId(response.id);
     } catch (err: any) {
       console.error("Failed to save note:", err);
       setError(err.message || "An unexpected error occurred while saving.");
@@ -66,6 +68,32 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (createdNoteId) {
+    return (
+      <div className="flex flex-col h-full bg-bg-card animate-in slide-in-from-right duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-text-notion flex items-center gap-2">
+              <CheckCircle2 className="w-6 h-6 text-green-500" />
+              Note Created!
+            </h2>
+            <p className="text-sm text-text-notion-muted mt-1">You can now attach files or finish.</p>
+          </div>
+          <button
+            onClick={onSaveSuccess}
+            className="bg-brand-blue text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-brand-blue/90 transition-colors"
+          >
+            Finish & Return
+          </button>
+        </div>
+        
+        <div className="bg-bg-app border border-border-notion rounded-xl p-6">
+          <FileUploader noteId={createdNoteId} onUploadComplete={onSaveSuccess} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-bg-card animate-in fade-in duration-200">
