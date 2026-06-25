@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import type { NoteResponse } from '../types';
 import { Loader2, CheckCircle, BrainCircuit, Calendar } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface PendingReviewsProps {
   onNoteClick: (note: NoteResponse) => void;
@@ -33,10 +34,12 @@ export function PendingReviews({ onNoteClick }: PendingReviewsProps) {
     setReviewingId(id);
     try {
       await api.reviewNote(id);
+      toast.success('Concept marked as reviewed!');
       // Optimistically remove from list
       setNotes(prev => prev.filter(n => n.id !== id));
     } catch (err) {
       console.error("Failed to mark as reviewed:", err);
+      toast.error("Failed to register review.");
     } finally {
       setReviewingId(null);
     }

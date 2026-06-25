@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles, LayoutDashboard } from 'lucide-react';
 import { HybridSearch } from './components/HybridSearch';
 import { NoteViewer } from './components/NoteViewer';
@@ -7,11 +7,27 @@ import { Dashboard } from './components/Dashboard';
 import { PendingReviews } from './components/PendingReviews';
 import { AllNotes } from './components/AllNotes';
 import type { NoteResponse } from './types';
+import { Toaster } from 'react-hot-toast';
+import { Moon, Sun } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'review' | 'all' | 'create'>('dashboard');
   const [selectedNote, setSelectedNote] = useState<{note: NoteResponse, rank?: number} | null>(null);
   const [editingNote, setEditingNote] = useState<NoteResponse | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize dark mode based on OS preference
+  useEffect(() => {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setIsDarkMode(true);
+      document.documentElement.classList.add('dark');
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    document.documentElement.classList.toggle('dark');
+  };
 
   // Helper to handle tab switching cleanly
   const switchTab = (tab: typeof activeTab) => {
@@ -24,6 +40,18 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-notion font-sans relative">
+      <Toaster 
+        position="bottom-right" 
+        toastOptions={{
+          style: {
+            background: 'var(--color-bg-card)',
+            color: 'var(--color-text-notion)',
+            border: '1px solid var(--color-border-notion)',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          }
+        }} 
+      />
       {/* Sidebar */}
       <aside className="w-64 border-r border-border-notion bg-bg-sidebar flex flex-col justify-between shrink-0 select-none">
         <div className="p-4 flex flex-col gap-6">
@@ -99,9 +127,18 @@ function App() {
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-4 border-t border-border-notion flex items-center gap-2 text-xs text-text-notion-muted">
-          <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
-          <span>Spring Boot + React + Tailwind v4</span>
+        <div className="p-4 border-t border-border-notion flex flex-col gap-4">
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-2 text-sm font-medium text-text-notion-muted hover:text-text-notion transition-colors"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <div className="flex items-center gap-2 text-xs text-text-notion-muted">
+            <Sparkles className="w-3.5 h-3.5 text-brand-blue" />
+            <span>Spring Boot + React + Tailwind v4</span>
+          </div>
         </div>
       </aside>
 
@@ -114,6 +151,7 @@ function App() {
               {activeTab === 'dashboard' ? 'Overview' : activeTab === 'search' ? 'Hybrid Search' : activeTab === 'review' ? 'Pending Reviews' : activeTab === 'all' ? 'All Notes' : 'New Note'}
             </span>
           </div>
+
         </header>
 
         {/* Workspace Content */}

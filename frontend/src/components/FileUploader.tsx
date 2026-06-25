@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { api } from '../services/api';
 import { UploadCloud, File, X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export type FileStatus = 'pending' | 'uploading' | 'success' | 'error';
 
@@ -72,9 +73,12 @@ export function FileUploader({ noteId, onUploadComplete }: FileUploaderProps) {
       try {
         await api.uploadAttachment(noteId, item.file);
         updateFileStatus(item.id, 'success');
-      } catch (err) {
-        console.error(`Error uploading ${item.file.name}:`, err);
-        updateFileStatus(item.id, 'error');
+      } catch (err: any) {
+        console.error(`Upload failed for ${item.file.name}`, err);
+        toast.error(`Failed to upload ${item.file.name}`);
+        setFiles(prev => prev.map(f => 
+          f.id === item.id ? { ...f, status: 'error' } : f
+        ));
         hasError = true;
       }
     });

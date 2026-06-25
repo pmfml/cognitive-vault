@@ -4,6 +4,7 @@ import type { NoteResponse, AttachmentResponse, RelationshipResponse } from '../
 import { api } from '../services/api';
 import { X, Calendar, Target, FileText, Code2, Link, Paperclip, Loader2, Plus, Trash2, Edit3 } from 'lucide-react';
 import { FileUploader } from './FileUploader';
+import { toast } from 'react-hot-toast';
 
 interface NoteViewerProps {
   note: NoteResponse;
@@ -43,10 +44,11 @@ export function NoteViewer({ note, rrfRank, onClose, onEditNote, onDeleteSuccess
     if (window.confirm('Are you sure you want to permanently delete this note?')) {
       try {
         await api.deleteNote(note.id);
+        toast.success('Note deleted permanently.');
         if (onDeleteSuccess) onDeleteSuccess();
       } catch (err) {
         console.error("Failed to delete note", err);
-        alert("Failed to delete the note. Please try again.");
+        toast.error("Failed to delete the note. Please try again.");
       }
     }
   };
@@ -56,10 +58,11 @@ export function NoteViewer({ note, rrfRank, onClose, onEditNote, onDeleteSuccess
     if (window.confirm('Delete this attachment permanently?')) {
       try {
         await api.deleteAttachment(attId);
+        toast.success('Attachment deleted.');
         fetchContext(); // Refresh attachments
       } catch (err) {
         console.error("Failed to delete attachment", err);
-        alert("Failed to delete attachment.");
+        toast.error("Failed to delete attachment.");
       }
     }
   };

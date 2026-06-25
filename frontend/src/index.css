@@ -2,21 +2,41 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --color-bg-app: #fbfbfa; /* Notion-like off-white background */
-  --color-bg-sidebar: #f7f7f5; /* Notion-like sidebar */
-  --color-bg-card: #ffffff;
-  --color-border-notion: #e9e9e7; /* Subtle border grey */
-  --color-text-notion: #37352f; /* Main dark charcoal text */
-  --color-text-notion-muted: #787774; /* Subdued text grey */
-  --color-brand-blue: #2383e2; /* Active/accent blue */
+  --color-bg-app: var(--app-bg);
+  --color-bg-sidebar: var(--app-sidebar);
+  --color-bg-card: var(--app-card);
+  --color-border-notion: var(--app-border);
+  --color-text-notion: var(--app-text);
+  --color-text-notion-muted: var(--app-text-muted);
+  --color-brand-blue: #2383e2;
   --color-brand-blue-hover: #1b66b1;
-  --color-bg-hover: #efefe0; /* Notion-style hover */
+  --color-bg-hover: var(--app-hover);
   
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 @layer base {
+  :root {
+    --app-bg: #fbfbfa;
+    --app-sidebar: #f7f7f5;
+    --app-card: #ffffff;
+    --app-border: #e9e9e7;
+    --app-text: #37352f;
+    --app-text-muted: #787774;
+    --app-hover: #efefe0;
+  }
+  
+  .dark {
+    --app-bg: #191919;
+    --app-sidebar: #202020;
+    --app-card: #252525;
+    --app-border: #333333;
+    --app-text: #eaeaea;
+    --app-text-muted: #9e9e9e;
+    --app-hover: #2f2f2f;
+  }
+
   body {
     background-color: var(--color-bg-app);
     color: var(--color-text-notion);

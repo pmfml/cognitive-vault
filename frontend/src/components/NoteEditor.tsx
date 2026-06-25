@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import type { NoteRequest, NoteType, NoteResponse } from '../types';
 import { Save, AlertCircle, Loader2, X, Plus, CheckCircle2 } from 'lucide-react';
 import { FileUploader } from './FileUploader';
+import { toast } from 'react-hot-toast';
 
 interface NoteEditorProps {
   initialNote?: NoteResponse | null;
@@ -77,9 +78,11 @@ export function NoteEditor({ initialNote, onSaveSuccess }: NoteEditorProps) {
         response = await api.createNote(payload);
       }
       setSavedNoteId(response.id);
+      toast.success(initialNote ? 'Note updated successfully!' : 'Note created successfully!');
     } catch (err: any) {
       console.error("Failed to save note:", err);
       setError(err.message || "An unexpected error occurred while saving.");
+      toast.error(err.message || "Failed to save the note.");
     } finally {
       setIsSubmitting(false);
     }
