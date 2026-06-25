@@ -4,6 +4,7 @@ import { HybridSearch } from './components/HybridSearch';
 import { NoteViewer } from './components/NoteViewer';
 import { NoteEditor } from './components/NoteEditor';
 import { Dashboard } from './components/Dashboard';
+import { PendingReviews } from './components/PendingReviews';
 import type { NoteResponse } from './types';
 
 function App() {
@@ -116,17 +117,7 @@ function App() {
             )}
 
             {activeTab === 'review' && (
-              <div className="flex flex-col gap-6 justify-center items-center h-[50vh] text-center">
-                <div className="p-4 bg-bg-sidebar rounded-2xl border border-border-notion">
-                  <CheckSquare className="w-8 h-8 text-text-notion-muted mx-auto" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-text-notion mb-1">Spaced Repetition Engine</h2>
-                  <p className="text-sm text-text-notion-muted max-w-md mx-auto">
-                    Here, notes pending review will be listed based on access decay. The review panel and widget will be configured shortly.
-                  </p>
-                </div>
-              </div>
+              <PendingReviews onNoteClick={(note) => setSelectedNote({ note })} />
             )}
 
             {activeTab === 'all' && (
