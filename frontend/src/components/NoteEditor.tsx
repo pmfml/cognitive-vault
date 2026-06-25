@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { api } from '../services/api';
-import type { NoteRequest, NoteType } from '../types';
+import type { NoteRequest, NoteType, NoteResponse } from '../types';
 import { Save, AlertCircle, Loader2, X, Plus, CheckCircle2 } from 'lucide-react';
 import { FileUploader } from './FileUploader';
 
 interface NoteEditorProps {
+  initialNote?: NoteResponse | null;
   onSaveSuccess: () => void;
 }
 
-export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
+export function NoteEditor({ initialNote, onSaveSuccess }: NoteEditorProps) {
   const [title, setTitle] = useState('');
   const [type, setType] = useState<NoteType>('TECHNICAL_NOTE');
   const [language, setLanguage] = useState('');
@@ -19,7 +20,17 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
   const [tagInput, setTagInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createdNoteId, setCreatedNoteId] = useState<string | null>(null);
+  const [savedNoteId, setSavedNoteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialNote) {
+      setTitle(initialNote.title);
+      setType(initialNote.type);
+      setLanguage(initialNote.language || '');
+      setContent(initialNote.content);
+      setTags(initialNote.tags || []);
+    }
+  }, [initialNote]);
 
   const handleAddTag = () => {
     const trimmed = tagInput.trim();
@@ -59,8 +70,13 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
     };
 
     try {
-      const response = await api.createNote(payload);
-      setCreatedNoteId(response.id);
+      let response;
+      if (initialNote) {
+        response = await api.updateNote(initialNote.id, payload);
+      } else {
+        response = await api.createNote(payload);
+      }
+      setSavedNoteId(response.id);
     } catch (err: any) {
       console.error("Failed to save note:", err);
       setError(err.message || "An unexpected error occurred while saving.");
@@ -69,14 +85,14 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
     }
   };
 
-  if (createdNoteId) {
+  if (savedNoteId) {
     return (
       <div className="flex flex-col h-full bg-bg-card animate-in slide-in-from-right duration-300">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-text-notion flex items-center gap-2">
               <CheckCircle2 className="w-6 h-6 text-green-500" />
-              Note Created!
+              Note {initialNote ? 'Updated' : 'Created'}!
             </h2>
             <p className="text-sm text-text-notion-muted mt-1">You can now attach files or finish.</p>
           </div>
@@ -89,7 +105,7 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
         </div>
         
         <div className="bg-bg-app border border-border-notion rounded-xl p-6">
-          <FileUploader noteId={createdNoteId} onUploadComplete={onSaveSuccess} />
+          <FileUploader noteId={savedNoteId} onUploadComplete={onSaveSuccess} />
         </div>
       </div>
     );
@@ -98,8 +114,8 @@ export function NoteEditor({ onSaveSuccess }: NoteEditorProps) {
   return (
     <div className="flex flex-col h-full bg-bg-card animate-in fade-in duration-200">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-text-notion">Create New Note</h2>
-        <button
+        <h2 className="text-2xl font-bold text-text-notion">{initialNote ? 'Edit Note' : 'Create Note'}</h2>
+        <button 
           onClick={handleSubmit}
           disabled={isSubmitting}
           className="flex items-center gap-2 bg-brand-blue text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-brand-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

@@ -11,6 +11,16 @@ import type { NoteResponse } from './types';
 function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'review' | 'all' | 'create'>('dashboard');
   const [selectedNote, setSelectedNote] = useState<{note: NoteResponse, rank?: number} | null>(null);
+  const [editingNote, setEditingNote] = useState<NoteResponse | null>(null);
+
+  // Helper to handle tab switching cleanly
+  const switchTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    setSelectedNote(null);
+    if (tab !== 'create') {
+      setEditingNote(null);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-notion font-sans relative">
@@ -31,7 +41,7 @@ function App() {
           {/* Navigation */}
           <nav className="flex flex-col gap-0.5">
             <button
-              onClick={() => setActiveTab('dashboard')}
+              onClick={() => switchTab('dashboard')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'dashboard'
                   ? 'bg-bg-hover text-text-notion'
@@ -42,7 +52,7 @@ function App() {
               Dashboard
             </button>
             <button
-              onClick={() => setActiveTab('search')}
+              onClick={() => switchTab('search')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'search'
                   ? 'bg-bg-hover text-text-notion'
@@ -53,7 +63,7 @@ function App() {
               Hybrid Search
             </button>
             <button
-              onClick={() => setActiveTab('review')}
+              onClick={() => switchTab('review')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'review'
                   ? 'bg-bg-hover text-text-notion'
@@ -64,7 +74,7 @@ function App() {
               Pending Reviews
             </button>
             <button
-              onClick={() => setActiveTab('all')}
+              onClick={() => switchTab('all')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'all'
                   ? 'bg-bg-hover text-text-notion'
@@ -75,7 +85,7 @@ function App() {
               All Notes
             </button>
             <button
-              onClick={() => setActiveTab('create')}
+              onClick={() => switchTab('create')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                 activeTab === 'create'
                   ? 'bg-bg-hover text-text-notion'
@@ -126,7 +136,13 @@ function App() {
             )}
 
             {activeTab === 'create' && (
-              <NoteEditor onSaveSuccess={() => setActiveTab('search')} />
+              <NoteEditor 
+                initialNote={editingNote}
+                onSaveSuccess={() => {
+                  setEditingNote(null);
+                  switchTab('search');
+                }} 
+              />
             )}
           </div>
         </div>
@@ -138,6 +154,15 @@ function App() {
               note={selectedNote.note} 
               rrfRank={selectedNote.rank}
               onClose={() => setSelectedNote(null)} 
+              onEditNote={(note) => {
+                setEditingNote(note);
+                setActiveTab('create');
+                setSelectedNote(null);
+              }}
+              onDeleteSuccess={() => {
+                setSelectedNote(null);
+                // In a robust system, we would force re-fetch the active tab here
+              }}
             />
           </div>
         )}
