@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import type { NoteResponse } from '../types';
 import { BookOpen, CheckSquare, Hash, Loader2 } from 'lucide-react';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -30,12 +31,28 @@ export function Dashboard() {
   // Aggregations
   const totalNotes = notes.length;
   
-  // Calculate unique tags
-  const uniqueTags = new Set<string>();
+  const tagCounts: Record<string, number> = {};
   notes.forEach(note => {
-    note.tags.forEach(tag => uniqueTags.add(tag));
+    note.tags.forEach(tag => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
   });
-  const totalTags = uniqueTags.size;
+  const totalTags = Object.keys(tagCounts).length;
+
+  const barData = Object.entries(tagCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const technicalCount = notes.filter(n => n.type === 'TECHNICAL_NOTE').length;
+  const snippetCount = notes.filter(n => n.type === 'CODE_SNIPPET').length;
+  
+  const pieData = [
+    { name: 'Technical Notes', value: technicalCount },
+    { name: 'Code Snippets', value: snippetCount }
+  ];
+  
+  const COLORS = ['#2563eb', '#10b981']; // Brand Blue, Emerald
 
   if (isLoading) {
     return (
@@ -86,10 +103,61 @@ export function Dashboard() {
 
       </div>
 
-      {/* Chart Placeholders for 6.3.2 */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
-         <div className="h-72 border border-dashed border-border-notion bg-bg-app/50 rounded-xl flex items-center justify-center text-sm text-text-notion-muted">
-           Charts will be implemented in Parte 6.3.2
+         {/* Pie Chart */}
+         <div className="bg-bg-card border border-border-notion rounded-xl p-6 flex flex-col shadow-sm">
+           <h3 className="text-sm font-semibold text-text-notion mb-4 uppercase tracking-wider">Note Distribution</h3>
+           <div className="flex-1 min-h-[250px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <PieChart>
+                 <Pie
+                   data={pieData}
+                   innerRadius={60}
+                   outerRadius={80}
+                   paddingAngle={5}
+                   dataKey="value"
+                 >
+                   {pieData.map((_, index) => (
+                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                   ))}
+                 </Pie>
+                 <Tooltip 
+                   contentStyle={{ backgroundColor: '#1e1e1e', border: '1px solid #333', borderRadius: '8px' }}
+                   itemStyle={{ color: '#e5e5e5' }}
+                 />
+               </PieChart>
+             </ResponsiveContainer>
+           </div>
+           <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-brand-blue"></div>
+                <span className="text-xs text-text-notion-muted">Technical Notes ({technicalCount})</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                <span className="text-xs text-text-notion-muted">Code Snippets ({snippetCount})</span>
+              </div>
+           </div>
+         </div>
+
+         {/* Bar Chart */}
+         <div className="bg-bg-card border border-border-notion rounded-xl p-6 flex flex-col shadow-sm">
+           <h3 className="text-sm font-semibold text-text-notion mb-4 uppercase tracking-wider">Top 5 Tags</h3>
+           <div className="flex-1 min-h-[250px]">
+             <ResponsiveContainer width="100%" height="100%">
+               <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                 <XAxis dataKey="name" stroke="#525252" fontSize={12} tickLine={false} axisLine={false} />
+                 <YAxis stroke="#525252" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                 <Tooltip 
+                   cursor={{ fill: '#333333', opacity: 0.4 }}
+                   contentStyle={{ backgroundColor: '#1e1e1e', border: '1px solid #333', borderRadius: '8px' }}
+                   itemStyle={{ color: '#e5e5e5' }}
+                 />
+                 <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
+               </BarChart>
+             </ResponsiveContainer>
+           </div>
          </div>
       </div>
     </div>

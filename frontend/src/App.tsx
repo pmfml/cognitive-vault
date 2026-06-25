@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles } from 'lucide-react';
+import { Search, BookOpen, PlusCircle, CheckSquare, Sparkles, LayoutDashboard } from 'lucide-react';
 import { HybridSearch } from './components/HybridSearch';
 import { NoteViewer } from './components/NoteViewer';
 import { NoteEditor } from './components/NoteEditor';
+import { Dashboard } from './components/Dashboard';
 import type { NoteResponse } from './types';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'search' | 'review' | 'all' | 'create'>('search');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'search' | 'review' | 'all' | 'create'>('dashboard');
   const [selectedNote, setSelectedNote] = useState<{note: NoteResponse, rank?: number} | null>(null);
 
   return (
@@ -27,6 +28,17 @@ function App() {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-0.5">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                activeTab === 'dashboard'
+                  ? 'bg-bg-hover text-text-notion'
+                  : 'text-text-notion-muted hover:bg-bg-hover/50 hover:text-text-notion'
+              }`}
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Dashboard
+            </button>
             <button
               onClick={() => setActiveTab('search')}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
@@ -87,7 +99,7 @@ function App() {
         <header className="h-14 border-b border-border-notion flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-text-notion capitalize">
-              {activeTab === 'search' ? 'Hybrid Search' : activeTab === 'review' ? 'Pending Reviews' : activeTab === 'all' ? 'All Notes' : 'New Note'}
+              {activeTab === 'dashboard' ? 'Overview' : activeTab === 'search' ? 'Hybrid Search' : activeTab === 'review' ? 'Pending Reviews' : activeTab === 'all' ? 'All Notes' : 'New Note'}
             </span>
           </div>
         </header>
@@ -95,6 +107,10 @@ function App() {
         {/* Workspace Content */}
         <div className="flex-1 overflow-y-auto p-8 relative">
           <div className="max-w-4xl mx-auto w-full">
+            {activeTab === 'dashboard' && (
+              <Dashboard />
+            )}
+
             {activeTab === 'search' && (
               <HybridSearch onNoteClick={(note, rank) => setSelectedNote({ note, rank })} />
             )}
