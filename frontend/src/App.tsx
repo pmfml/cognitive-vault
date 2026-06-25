@@ -5,6 +5,7 @@ import { NoteViewer } from './components/NoteViewer';
 import { NoteEditor } from './components/NoteEditor';
 import { Dashboard } from './components/Dashboard';
 import { PendingReviews } from './components/PendingReviews';
+import { AllNotes } from './components/AllNotes';
 import type { NoteResponse } from './types';
 
 function App() {
@@ -121,17 +122,7 @@ function App() {
             )}
 
             {activeTab === 'all' && (
-              <div className="flex flex-col gap-6 justify-center items-center h-[50vh] text-center">
-                <div className="p-4 bg-bg-sidebar rounded-2xl border border-border-notion">
-                  <BookOpen className="w-8 h-8 text-text-notion-muted mx-auto" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-text-notion mb-1">All Notes</h2>
-                  <p className="text-sm text-text-notion-muted max-w-md mx-auto">
-                    View the complete catalog of registered notes and snippets.
-                  </p>
-                </div>
-              </div>
+              <AllNotes onNoteClick={(note) => setSelectedNote({ note })} />
             )}
 
             {activeTab === 'create' && (
