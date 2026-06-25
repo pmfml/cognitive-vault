@@ -19,14 +19,15 @@ This application is built as a portfolio piece showcasing Java backend engineeri
 
 ## 🛠️ Technology Stack
 
-*   **Language:** Java 21 (Records, pattern matching, modern switch expressions)
+*   **Backend:** Java 21 (Records, pattern matching, modern switch expressions)
 *   **Framework:** Spring Boot 3.5.x with Spring Data JPA
+*   **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Recharts
 *   **Database:** PostgreSQL 16 + `pgvector` extension (vector similarity search)
 *   **Semantic Embeddings:** Spring AI with local ONNX model (`all-MiniLM-L6-v2`, 384 dimensions)
 *   **Object Storage:** MinIO (Local S3 compatibility via AWS SDK v2)
 *   **Search Engine:** Elasticsearch 8.x (full-text keyword indexing)
 *   **Local Containerization:** Docker / Docker Compose
-*   **Testing:** JUnit 5, Mockito, Spring WebMvcTest (64 automated tests)
+*   **Testing:** JUnit 5, Mockito, Spring WebMvcTest (Backend)
 
 ---
 
@@ -35,8 +36,9 @@ This application is built as a portfolio piece showcasing Java backend engineeri
 To run this application locally, you will need:
 
 1.  **Java JDK 21** or higher.
-2.  **Docker & Docker Compose** installed and running.
-3.  **Maven** (or use the included `./mvnw` wrapper).
+2.  **Node.js 20.19+** (required by Vite v8+).
+3.  **Docker & Docker Compose** installed and running.
+4.  **Maven** (or use the included `./mvnw` wrapper).
 
 ---
 
@@ -79,12 +81,21 @@ The project contains a full automated unit and integration testing suite. Run al
 ./mvnw clean test
 ```
 
-### 5. Running the Application
+### 5. Running the Backend
 Once the Docker containers are healthy and tests pass, start the Spring Boot application:
 ```bash
 ./mvnw spring-boot:run
 ```
-The REST API will be available at `http://localhost:8080`.
+The REST API will be available at `http://localhost:8081`.
+
+### 6. Running the Frontend
+In a new terminal window, navigate to the frontend directory, install dependencies, and start the Vite dev server:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The User Interface will be available at `http://localhost:5173`.
 
 ---
 

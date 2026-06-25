@@ -9,10 +9,11 @@ This document provides a detailed overview of the system architecture, design pa
 Cognitive Vault is a personal knowledge management platform designed to store technical notes, code snippets, and files. It goes beyond traditional note-taking by dynamically calculating semantic relationships between notes, automatically suggesting spaced repetition study reviews, and providing a hybrid search experience.
 
 The system utilizes a hybrid storage and retrieval approach:
-1. **Relational + Vector Database (PostgreSQL with pgvector):** Stores note metadata, tags, relationships, and vector embeddings (384-dimension) generated for semantic similarity searches.
-2. **Object Storage (MinIO / S3):** Stores raw attachments (PDFs, images, TXT files).
-3. **Full-Text Search Engine (Elasticsearch):** Indexes raw text of attachments and notes to support fast keyword searching.
-4. **Local Embedding Model (ONNX):** Generates 384-dimension vector embeddings locally via Spring AI using the `all-MiniLM-L6-v2` model, with no external API calls.
+1. **Frontend (React/Vite):** A modern, component-based Single Page Application providing a dashboard, Markdown live-preview editors, concurrent file uploaders, and interactive data visualization (Recharts).
+2. **Relational + Vector Database (PostgreSQL with pgvector):** Stores note metadata, tags, relationships, and vector embeddings (384-dimension) generated for semantic similarity searches.
+3. **Object Storage (MinIO / S3):** Stores raw attachments (PDFs, images, TXT files).
+4. **Full-Text Search Engine (Elasticsearch):** Indexes raw text of attachments and notes to support fast keyword searching.
+5. **Local Embedding Model (ONNX):** Generates 384-dimension vector embeddings locally via Spring AI using the `all-MiniLM-L6-v2` model, with no external API calls.
 
 ---
 
@@ -148,5 +149,7 @@ The `findNotesNeedingReview` JPQL query implements three independent decay rules
 - **Phase 2 (Completed):** Implement S3 Attachment storage with local MinIO, including file metadata tracking and text extraction.
 - **Phase 3 (Completed):** Integrate Elasticsearch keyword indexing and Hybrid Search with RRF fusion.
 - **Phase 4 (Completed):** Auto-link semantically related content via embedding matching, implement Spaced Repetition review engine, and add transparent access auditing.
-- **Phase 5 (Next):** Build React + Vite frontend with glassmorphic dark mode UI, hybrid search view, note reader, and review widget.
-- **Phase 6 (Upcoming):** Note management forms, file upload UI, CORS configuration, and final integration polish.
+- **Phase 5 (Completed):** Build React + Vite frontend with glassmorphic dark mode UI, hybrid search view, and note reader overlay.
+- **Phase 6 (Completed):** Note management forms with live Markdown preview, multi-file concurrent upload UI, and Recharts Dashboard.
+- **Phase 7 (Next):** Pending Reviews UI, Full Note List, Edit/Delete flows, global Toasts, and final UX polish.
+- **Phase 8 (Upcoming):** Comprehensive Testing Suite (Frontend Unit Tests via Vitest, UI component tests, and Backend Integration test expansions).
