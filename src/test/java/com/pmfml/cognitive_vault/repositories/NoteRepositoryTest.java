@@ -20,8 +20,17 @@ class NoteRepositoryTest {
     @Autowired
     private NoteRepository noteRepository;
 
+    @Autowired
+    private RelationshipRepository relationshipRepository;
+
+    @Autowired
+    private AttachmentRepository attachmentRepository;
+
     @Test
     void findSimilarNotes_shouldReturnNotesOrderedByDistance() {
+        relationshipRepository.deleteAll();
+        attachmentRepository.deleteAll();
+        noteRepository.deleteAll();
         // Arrange
         // Create three notes with distinct vectors of 384 dimensions.
         float[] vectorA = new float[384];
@@ -75,6 +84,9 @@ class NoteRepositoryTest {
 
     @Test
     void findSimilarNotesExcludingSelf_shouldRecommendOtherNotes() {
+        relationshipRepository.deleteAll();
+        attachmentRepository.deleteAll();
+        noteRepository.deleteAll();
         // Arrange
         float[] vectorA = new float[384];
         vectorA[0] = 1.0f;
