@@ -75,4 +75,37 @@ class SearchControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Search Match"));
     }
+
+    @Test
+    void search_withBlankQuery_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/search")
+                        .param("query", "")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void search_withMissingQuery_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/search")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void search_withLimitAboveMaximum_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/search")
+                        .param("query", "java")
+                        .param("limit", "999")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void search_withLimitBelowMinimum_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/search")
+                        .param("query", "java")
+                        .param("limit", "0")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
 }
