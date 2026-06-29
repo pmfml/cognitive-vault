@@ -5,7 +5,12 @@ import com.pmfml.cognitive_vault.entities.NoteType;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,7 +20,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @SpringBootTest
 @Transactional
+@Testcontainers
 class NoteRepositoryTest {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("pgvector/pgvector:pg16")
+            .withDatabaseName("test_vault")
+            .withUsername("test_user")
+            .withPassword("test_pass");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
     @Autowired
     private NoteRepository noteRepository;
@@ -28,9 +47,6 @@ class NoteRepositoryTest {
 
     @Test
     void findSimilarNotes_shouldReturnNotesOrderedByDistance() {
-        relationshipRepository.deleteAll();
-        attachmentRepository.deleteAll();
-        noteRepository.deleteAll();
         // Arrange
         // Create three notes with distinct vectors of 384 dimensions.
         float[] vectorA = new float[384];
@@ -84,9 +100,6 @@ class NoteRepositoryTest {
 
     @Test
     void findSimilarNotesExcludingSelf_shouldRecommendOtherNotes() {
-        relationshipRepository.deleteAll();
-        attachmentRepository.deleteAll();
-        noteRepository.deleteAll();
         // Arrange
         float[] vectorA = new float[384];
         vectorA[0] = 1.0f;
