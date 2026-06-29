@@ -94,6 +94,11 @@ Once the Docker containers are healthy and tests pass, start the Spring Boot app
 ```
 The REST API will be available at `http://localhost:8081`.
 
+For a production-like run with SQL logging disabled, start with the `prod` profile:
+```bash
+SPRING_PROFILES_ACTIVE=prod ./mvnw spring-boot:run
+```
+
 ### 6. Running the Frontend
 In a new terminal window, navigate to the frontend directory, install dependencies, and start the Vite dev server:
 ```bash
