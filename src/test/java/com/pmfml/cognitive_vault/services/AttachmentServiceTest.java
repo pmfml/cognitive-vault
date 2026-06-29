@@ -80,7 +80,6 @@ class AttachmentServiceTest {
         // Assert
         assertNotNull(response);
         assertEquals(filename, response.fileName());
-        assertEquals(extractedText, response.extractedText());
         assertEquals(noteId, response.noteId());
         verify(storageService, times(1)).uploadFile(anyString(), eq(content), eq(contentType));
         verify(attachmentRepository, times(1)).save(any(Attachment.class));

@@ -48,10 +48,8 @@ class AttachmentControllerTest {
         AttachmentResponse mockResponse = new AttachmentResponse(
                 attachmentId,
                 "hello.txt",
-                "key",
                 "text/plain",
                 11L,
-                "Hello World",
                 Instant.now(),
                 noteId
         );
@@ -64,8 +62,7 @@ class AttachmentControllerTest {
                         .file(file))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(attachmentId.toString()))
-                .andExpect(jsonPath("$.fileName").value("hello.txt"))
-                .andExpect(jsonPath("$.extractedText").value("Hello World"));
+                .andExpect(jsonPath("$.fileName").value("hello.txt"));
 
         verify(attachmentService, times(1))
                 .uploadAttachment(eq(noteId), eq("hello.txt"), eq("text/plain"), any(byte[].class));
@@ -79,10 +76,8 @@ class AttachmentControllerTest {
         AttachmentResponse mockResponse = new AttachmentResponse(
                 attachmentId,
                 "hello.txt",
-                "key",
                 "text/plain",
                 11L,
-                "Hello World",
                 Instant.now(),
                 noteId
         );
@@ -116,10 +111,8 @@ class AttachmentControllerTest {
         AttachmentResponse mockResponse = new AttachmentResponse(
                 attachmentId,
                 "hello.txt",
-                "key",
                 "text/plain",
                 11L,
-                "Hello World",
                 Instant.now(),
                 noteId
         );

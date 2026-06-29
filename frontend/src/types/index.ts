@@ -24,10 +24,8 @@ export interface NoteRequest {
 export interface AttachmentResponse {
   id: string;
   fileName: string;
-  s3Key: string;
   contentType: string;
   fileSize: number;
-  extractedText: string | null;
   createdAt: string;
   noteId: string;
 }

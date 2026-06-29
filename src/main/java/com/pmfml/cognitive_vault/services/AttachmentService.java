@@ -179,10 +179,8 @@ public class AttachmentService {
         return new AttachmentResponse(
                 attachment.getId(),
                 attachment.getFileName(),
-                attachment.getS3Key(),
                 attachment.getContentType(),
                 attachment.getFileSize(),
-                attachment.getExtractedText(),
                 attachment.getCreatedAt(),
                 attachment.getNote().getId()
         );
