@@ -12,9 +12,10 @@ interface NoteViewerProps {
   onClose: () => void;
   onEditNote?: (note: NoteResponse) => void;
   onDeleteSuccess?: () => void;
+  onOpenNote?: (note: NoteResponse) => void;
 }
 
-export function NoteViewer({ note, rrfRank, onClose, onEditNote, onDeleteSuccess }: NoteViewerProps) {
+export function NoteViewer({ note, rrfRank, onClose, onEditNote, onDeleteSuccess, onOpenNote }: NoteViewerProps) {
   const [attachments, setAttachments] = useState<AttachmentResponse[]>([]);
   const [relatedNotes, setRelatedNotes] = useState<RelationshipResponse[]>([]);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
@@ -245,7 +246,16 @@ export function NoteViewer({ note, rrfRank, onClose, onEditNote, onDeleteSuccess
                 {relatedNotes.map((rel) => (
                   <div 
                     key={rel.relationshipId}
-                    className="flex flex-col gap-1.5 p-3 bg-bg-card border border-border-notion rounded-lg hover:border-brand-blue/30 transition-colors cursor-pointer group"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onOpenNote?.(rel.targetNote)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onOpenNote?.(rel.targetNote);
+                      }
+                    }}
+                    className="flex flex-col gap-1.5 p-3 bg-bg-card border border-border-notion rounded-lg hover:border-brand-blue/30 transition-colors cursor-pointer group focus:outline-none focus:ring-2 focus:ring-brand-blue/40"
                   >
                     <h4 className="text-xs font-medium text-text-notion leading-tight group-hover:text-brand-blue transition-colors">
                       {rel.targetNote.title}

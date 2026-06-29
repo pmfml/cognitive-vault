@@ -201,6 +201,7 @@ function App() {
                 setSelectedNote(null);
                 // In a robust system, we would force re-fetch the active tab here
               }}
+              onOpenNote={(note) => setSelectedNote({ note })}
             />
           </div>
         )}
