@@ -3,7 +3,6 @@ package com.pmfml.cognitive_vault.services;
 import com.pmfml.cognitive_vault.documents.NoteDocument;
 import com.pmfml.cognitive_vault.dtos.NoteResponse;
 import com.pmfml.cognitive_vault.entities.Note;
-import com.pmfml.cognitive_vault.entities.Tag;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import com.pmfml.cognitive_vault.repositories.elasticsearch.NoteDocumentRepository;
 import org.slf4j.Logger;
@@ -15,10 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -147,13 +144,5 @@ public class HybridSearchService {
                 .map(Map.Entry::getKey)
                 .limit(limit)
                 .collect(Collectors.toList());
-    }
-
-    private String toVectorString(float[] vector) {
-        return VectorUtils.toVectorString(vector);
-    }
-
-    private NoteResponse mapToResponse(Note note) {
-        return NoteMapper.toResponse(note);
     }
 }

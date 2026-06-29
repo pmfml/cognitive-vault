@@ -83,8 +83,4 @@ public class RelationshipService {
         }
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
-
-    private String toVectorString(float[] vector) {
-        return VectorUtils.toVectorString(vector);
-    }
 }
