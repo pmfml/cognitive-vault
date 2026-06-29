@@ -7,6 +7,8 @@ import com.pmfml.cognitive_vault.entities.Note;
 import com.pmfml.cognitive_vault.entities.NoteType;
 import com.pmfml.cognitive_vault.entities.Relationship;
 import com.pmfml.cognitive_vault.entities.Tag;
+import com.pmfml.cognitive_vault.events.NoteIndexRequestedEvent;
+import com.pmfml.cognitive_vault.events.NoteUnindexRequestedEvent;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import com.pmfml.cognitive_vault.repositories.RelationshipRepository;
@@ -18,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.List;
@@ -49,6 +52,9 @@ class NoteServiceTest {
 
     @Mock
     private RelationshipService relationshipService;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private NoteService noteService;
@@ -94,7 +100,7 @@ class NoteServiceTest {
         assertTrue(response.tags().contains("spring"));
         verify(noteRepository, times(1)).save(any(Note.class));
         verify(relationshipService, times(1)).recalculateRelationships(any(Note.class));
-        verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
+        verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
     }
 
     // Note: input validation (blank title, blank content) is enforced by
@@ -153,7 +159,7 @@ class NoteServiceTest {
         assertEquals("java", response.language());
         verify(noteRepository, times(1)).save(any(Note.class));
         verify(relationshipService, times(1)).recalculateRelationships(any(Note.class));
-        verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
+        verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
     }
 
     @Test
@@ -203,7 +209,7 @@ class NoteServiceTest {
         assertNotNull(response.lastReviewedAt());
         assertTrue(response.lastReviewedAt().isAfter(beforeReview) || response.lastReviewedAt().equals(beforeReview));
         verify(noteRepository, times(1)).save(any(Note.class));
-        verify(elasticsearchIndexer, times(1)).indexNote(any(Note.class));
+        verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
     }
 
     @Test
@@ -222,7 +228,7 @@ class NoteServiceTest {
 
         verify(relationshipRepository, times(1)).deleteByNoteId(noteId);
         verify(noteRepository, times(1)).deleteById(noteId);
-        verify(elasticsearchIndexer, times(1)).deleteNote(noteId);
+        verify(eventPublisher, times(1)).publishEvent(any(NoteUnindexRequestedEvent.class));
     }
 
     @Test

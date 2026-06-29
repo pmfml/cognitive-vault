@@ -5,11 +5,14 @@ import com.pmfml.cognitive_vault.dtos.NoteResponse;
 import com.pmfml.cognitive_vault.dtos.RelationshipResponse;
 import com.pmfml.cognitive_vault.entities.Note;
 import com.pmfml.cognitive_vault.entities.Tag;
+import com.pmfml.cognitive_vault.events.NoteIndexRequestedEvent;
+import com.pmfml.cognitive_vault.events.NoteUnindexRequestedEvent;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import com.pmfml.cognitive_vault.repositories.RelationshipRepository;
 import com.pmfml.cognitive_vault.repositories.TagRepository;
 import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,19 +39,22 @@ public class NoteService {
     private final EmbeddingModel embeddingModel;
     private final ElasticsearchIndexer elasticsearchIndexer;
     private final RelationshipService relationshipService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public NoteService(NoteRepository noteRepository,
                        TagRepository tagRepository,
                        RelationshipRepository relationshipRepository,
                        EmbeddingModel embeddingModel,
                        ElasticsearchIndexer elasticsearchIndexer,
-                       RelationshipService relationshipService) {
+                       RelationshipService relationshipService,
+                       ApplicationEventPublisher eventPublisher) {
         this.noteRepository = noteRepository;
         this.tagRepository = tagRepository;
         this.relationshipRepository = relationshipRepository;
         this.embeddingModel = embeddingModel;
         this.elasticsearchIndexer = elasticsearchIndexer;
         this.relationshipService = relationshipService;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -73,7 +79,7 @@ public class NoteService {
 
         Note savedNote = noteRepository.save(note);
         relationshipService.recalculateRelationships(savedNote);
-        elasticsearchIndexer.indexNote(savedNote);
+        eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(savedNote)));
         return NoteMapper.toResponse(savedNote);
     }
 
@@ -122,7 +128,7 @@ public class NoteService {
 
         Note updatedNote = noteRepository.save(note);
         relationshipService.recalculateRelationships(updatedNote);
-        elasticsearchIndexer.indexNote(updatedNote);
+        eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(updatedNote)));
         return NoteMapper.toResponse(updatedNote);
     }
 
@@ -167,7 +173,7 @@ public class NoteService {
 
         note.setLastReviewedAt(Instant.now());
         Note updatedNote = noteRepository.save(note);
-        elasticsearchIndexer.indexNote(updatedNote);
+        eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(updatedNote)));
 
         return NoteMapper.toResponse(updatedNote);
     }
@@ -182,7 +188,7 @@ public class NoteService {
         }
         relationshipRepository.deleteByNoteId(id);
         noteRepository.deleteById(id);
-        elasticsearchIndexer.deleteNote(id);
+        eventPublisher.publishEvent(new NoteUnindexRequestedEvent(id));
     }
 
     /**

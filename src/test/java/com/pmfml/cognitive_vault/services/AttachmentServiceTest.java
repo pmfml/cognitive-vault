@@ -3,6 +3,7 @@ package com.pmfml.cognitive_vault.services;
 import com.pmfml.cognitive_vault.dtos.AttachmentResponse;
 import com.pmfml.cognitive_vault.entities.Attachment;
 import com.pmfml.cognitive_vault.entities.Note;
+import com.pmfml.cognitive_vault.events.NoteIndexRequestedEvent;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.AttachmentRepository;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -45,6 +47,9 @@ class AttachmentServiceTest {
 
     @Mock
     private ElasticsearchIndexer elasticsearchIndexer;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private AttachmentService attachmentService;
@@ -83,7 +88,7 @@ class AttachmentServiceTest {
         assertEquals(noteId, response.noteId());
         verify(storageService, times(1)).uploadFile(anyString(), eq(content), eq(contentType));
         verify(attachmentRepository, times(1)).save(any(Attachment.class));
-        verify(elasticsearchIndexer, times(1)).indexNote(note);
+        verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
     }
 
     @Test
@@ -139,6 +144,6 @@ class AttachmentServiceTest {
         // Assert
         verify(storageService, times(1)).deleteFile("key");
         verify(attachmentRepository, times(1)).delete(attachment);
-        verify(elasticsearchIndexer, times(1)).indexNote(note);
+        verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
     }
 }

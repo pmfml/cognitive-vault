@@ -3,11 +3,13 @@ package com.pmfml.cognitive_vault.services;
 import com.pmfml.cognitive_vault.dtos.AttachmentResponse;
 import com.pmfml.cognitive_vault.entities.Attachment;
 import com.pmfml.cognitive_vault.entities.Note;
+import com.pmfml.cognitive_vault.events.NoteIndexRequestedEvent;
 import com.pmfml.cognitive_vault.exceptions.ResourceNotFoundException;
 import com.pmfml.cognitive_vault.repositories.AttachmentRepository;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class AttachmentService {
     private final AttachmentStorageService storageService;
     private final DocumentProcessor documentProcessor;
     private final ElasticsearchIndexer elasticsearchIndexer;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * Constructor injection for repositories and utility services.
@@ -37,12 +40,14 @@ public class AttachmentService {
                              NoteRepository noteRepository,
                              AttachmentStorageService storageService,
                              DocumentProcessor documentProcessor,
-                             ElasticsearchIndexer elasticsearchIndexer) {
+                             ElasticsearchIndexer elasticsearchIndexer,
+                             ApplicationEventPublisher eventPublisher) {
         this.attachmentRepository = attachmentRepository;
         this.noteRepository = noteRepository;
         this.storageService = storageService;
         this.documentProcessor = documentProcessor;
         this.elasticsearchIndexer = elasticsearchIndexer;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -92,7 +97,7 @@ public class AttachmentService {
         log.info("Attachment metadata persisted successfully with ID: {}", saved.getId());
 
         // Re-index the parent note to include the new attachment's extracted text
-        elasticsearchIndexer.indexNote(note);
+        eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(note)));
 
         return mapToResponse(saved);
     }
@@ -168,7 +173,7 @@ public class AttachmentService {
                 note.getAttachments().remove(attachment);
             }
             // 3. Re-index parent note in Elasticsearch
-            elasticsearchIndexer.indexNote(note);
+            eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(note)));
         }
     }
 

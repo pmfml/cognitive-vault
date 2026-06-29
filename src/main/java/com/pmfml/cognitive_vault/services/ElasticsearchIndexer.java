@@ -29,15 +29,18 @@ public class ElasticsearchIndexer {
     }
 
     /**
-     * Maps and indexes a JPA Note entity (with its tags and attachments text) into Elasticsearch.
+     * Builds an Elasticsearch {@link NoteDocument} from a JPA Note entity.
+     * This must be invoked while the persistence context is still open (e.g.
+     * inside the originating transaction), since it reads lazy associations
+     * such as tags and attachments.
      *
      * @param note the JPA Note entity
+     * @return the mapped document, or {@code null} if the note is {@code null}
      */
-    public void indexNote(Note note) {
+    public NoteDocument toDocument(Note note) {
         if (note == null) {
-            return;
+            return null;
         }
-        log.info("Indexing note ID: {} to Elasticsearch index", note.getId());
 
         Set<String> tagNames = note.getTags() != null
                 ? note.getTags().stream().map(Tag::getName).collect(Collectors.toSet())
@@ -50,7 +53,7 @@ public class ElasticsearchIndexer {
                         .collect(Collectors.toSet())
                 : Collections.emptySet();
 
-        NoteDocument document = NoteDocument.builder()
+        return NoteDocument.builder()
                 .id(note.getId().toString())
                 .title(note.getTitle())
                 .content(note.getContent())
@@ -58,9 +61,26 @@ public class ElasticsearchIndexer {
                 .tags(tagNames)
                 .attachmentTexts(attachmentTexts)
                 .build();
+    }
 
-        noteDocumentRepository.save(document);
-        log.info("Successfully indexed note ID: {}", note.getId());
+    /**
+     * Persists a pre-built document into the Elasticsearch index.
+     * Failures are logged but never propagated, so a search-engine outage does
+     * not affect the primary data store.
+     *
+     * @param document the document to index
+     */
+    public void index(NoteDocument document) {
+        if (document == null) {
+            return;
+        }
+        log.info("Indexing note ID: {} to Elasticsearch index", document.getId());
+        try {
+            noteDocumentRepository.save(document);
+            log.info("Successfully indexed note ID: {}", document.getId());
+        } catch (Exception e) {
+            log.error("Failed to index note ID: {} to Elasticsearch. Error: {}", document.getId(), e.getMessage());
+        }
     }
 
     /**
