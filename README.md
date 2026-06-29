@@ -66,14 +66,20 @@ docker ps
 ```
 
 ### 3. Environment Variables (Optional)
-The application uses sensible defaults for local development. To override credentials in production, set the following environment variables before running:
+The application uses sensible defaults for local development, so **no environment variables are required to run it locally**. Every setting below falls back to a default baked into `application.properties`. To override credentials or connection endpoints in other environments, set the following before running:
 
 | Variable | Description | Default |
 |:---|:---|:---|
+| `DB_URL` | Full JDBC connection URL | `jdbc:postgresql://localhost:5434/cognitive_vault` |
 | `DB_USERNAME` | PostgreSQL username | `myuser` |
 | `DB_PASSWORD` | PostgreSQL password | `secret` |
+| `ELASTICSEARCH_URIS` | Elasticsearch endpoint URI | `http://localhost:9200` |
+| `AWS_S3_ENDPOINT` | MinIO/S3 endpoint URL | `http://localhost:9000` |
+| `AWS_REGION` | AWS region for the S3 client | `us-east-1` |
 | `AWS_ACCESS_KEY` | MinIO/S3 access key | `minioadmin` |
 | `AWS_SECRET_KEY` | MinIO/S3 secret key | `minioadmin` |
+| `S3_BUCKET` | Bucket name for attachments | `cognitive-vault-attachments` |
+| `SERVER_PORT` | Backend HTTP port | `8081` |
 
 ### 4. Build & Run Tests
 The project contains a full automated unit and integration testing suite. Run all 64 tests using the Maven wrapper:
