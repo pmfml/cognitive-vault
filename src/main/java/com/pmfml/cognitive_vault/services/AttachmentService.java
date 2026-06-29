@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.UUID;
@@ -79,6 +81,10 @@ public class AttachmentService {
 
         // 1. Upload file bytes to MinIO
         storageService.uploadFile(s3Key, content, contentType);
+
+        // Register a compensating action: if the surrounding transaction rolls
+        // back after this upload, the orphaned object is removed from storage.
+        registerS3RollbackCompensation(s3Key);
 
         // 2. Extract textual content if it is a text-based format
         String extractedText = documentProcessor.extractText(content, contentType, filename);
@@ -175,6 +181,37 @@ public class AttachmentService {
             // 3. Re-index parent note in Elasticsearch
             eventPublisher.publishEvent(new NoteIndexRequestedEvent(elasticsearchIndexer.toDocument(note)));
         }
+    }
+
+    /**
+     * Registers a transaction synchronization that deletes the freshly uploaded
+     * S3 object if the surrounding transaction ends up rolling back. This keeps
+     * the object storage consistent with the database when persistence fails
+     * after the upload has already happened.
+     *
+     * <p>The hook is only registered when a transaction synchronization is
+     * active; otherwise the method is a no-op (e.g. when invoked outside a
+     * transactional context).
+     *
+     * @param s3Key the key of the uploaded object to compensate for
+     */
+    private void registerS3RollbackCompensation(String s3Key) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status == STATUS_ROLLED_BACK) {
+                    log.warn("Transaction rolled back after S3 upload. Deleting orphaned object: {}", s3Key);
+                    try {
+                        storageService.deleteFile(s3Key);
+                    } catch (Exception e) {
+                        log.error("Failed to delete orphaned S3 object: {}. Manual cleanup may be required.", s3Key, e);
+                    }
+                }
+            }
+        });
     }
 
     /**

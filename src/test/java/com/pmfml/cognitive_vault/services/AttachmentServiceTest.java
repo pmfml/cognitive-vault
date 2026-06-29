@@ -9,12 +9,16 @@ import com.pmfml.cognitive_vault.repositories.AttachmentRepository;
 import com.pmfml.cognitive_vault.repositories.NoteRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -145,5 +149,41 @@ class AttachmentServiceTest {
         verify(storageService, times(1)).deleteFile("key");
         verify(attachmentRepository, times(1)).delete(attachment);
         verify(eventPublisher, times(1)).publishEvent(any(NoteIndexRequestedEvent.class));
+    }
+
+    @Test
+    void uploadAttachment_whenPersistenceFails_compensatesByDeletingS3Object() {
+        // Arrange
+        UUID noteId = UUID.randomUUID();
+        Note note = Note.builder().id(noteId).title("My Note").build();
+        byte[] content = "Hello World".getBytes();
+        String filename = "hello.txt";
+        String contentType = "text/plain";
+
+        when(noteRepository.findById(noteId)).thenReturn(Optional.of(note));
+        when(documentProcessor.extractText(content, contentType, filename)).thenReturn("Hello World");
+        when(attachmentRepository.save(any(Attachment.class))).thenThrow(new RuntimeException("Database unavailable"));
+
+        // Simulate an active transaction synchronization context.
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            // Act: persistence fails after the S3 upload already happened.
+            assertThrows(RuntimeException.class,
+                    () -> attachmentService.uploadAttachment(noteId, filename, contentType, content));
+
+            // Capture the key that was uploaded to storage.
+            ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+            verify(storageService, times(1)).uploadFile(keyCaptor.capture(), eq(content), eq(contentType));
+
+            // Simulate the transaction manager completing the (rolled back) transaction.
+            List<TransactionSynchronization> synchronizations =
+                    TransactionSynchronizationManager.getSynchronizations();
+            synchronizations.forEach(sync -> sync.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+
+            // Assert: the orphaned object was compensated (deleted) using the same key.
+            verify(storageService, times(1)).deleteFile(keyCaptor.getValue());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 }
