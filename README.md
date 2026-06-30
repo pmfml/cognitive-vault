@@ -11,23 +11,28 @@ This application is built as a portfolio piece showcasing Java backend engineeri
 *   **Hybrid Note & Snippet Catalog:** Store standard markdown text notes and code snippets with language syntax highlights.
 *   **Semantic Relationships:** Uses vector embeddings (384-dimension) to dynamically connect notes on related topics.
 *   **Spaced Repetition Engine:** Automatically identifies notes requiring review based on three intelligent decay rules (never reviewed, accessed after last review, or not reviewed in 30+ days).
-*   **Hybrid Search:** Search notes and attachments by keyword (Elasticsearch) and semantic meaning (pgvector cosine similarity), combined via Reciprocal Rank Fusion (RRF).
-*   **Document Analysis:** Upload attachments (PDFs, images, TXT files) whose textual content is extracted and indexed for search.
+*   **Hybrid Search:** Search notes and attachments by keyword (Elasticsearch) and semantic meaning (pgvector cosine similarity), combined via Reciprocal Rank Fusion (RRF). Search parameters are validated and capped for safety.
+*   **Document Analysis:** Upload attachments (PDFs, TXT, Markdown files) whose textual content is extracted via Apache Tika and indexed for both full-text and semantic search.
 *   **Transparent Access Audit:** Every search and direct note access automatically updates the `lastAccessedAt` timestamp, feeding the review engine with behavioral data.
+*   **Event-Driven Indexing:** Elasticsearch synchronization happens after database commit via transactional events, decoupling search availability from write operations.
+*   **Secure by Default:** HTTP Basic authentication protects all API endpoints, with credentials externalized via environment variables.
 
 ---
 
 ## 🛠️ Technology Stack
 
 *   **Backend:** Java 21 (Records, pattern matching, modern switch expressions)
-*   **Framework:** Spring Boot 3.5.x with Spring Data JPA
-*   **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Recharts
+*   **Framework:** Spring Boot 3.5.x with Spring Data JPA and Spring Security
+*   **Security:** HTTP Basic authentication (stateless, single-user, externalized credentials)
+*   **Frontend:** React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + Recharts
 *   **Database:** PostgreSQL 16 + `pgvector` extension (vector similarity search)
 *   **Semantic Embeddings:** Spring AI with local ONNX model (`all-MiniLM-L6-v2`, 384 dimensions)
+*   **Document Processing:** Apache Tika 3.x (text extraction from PDF and rich documents)
 *   **Object Storage:** MinIO (Local S3 compatibility via AWS SDK v2)
 *   **Search Engine:** Elasticsearch 8.x (full-text keyword indexing)
 *   **Local Containerization:** Docker / Docker Compose
-*   **Testing:** JUnit 5, Mockito, Spring WebMvcTest (Backend)
+*   **Testing:** JUnit 5, Mockito, Spring WebMvcTest, Testcontainers (Backend) / Vitest + React Testing Library (Frontend)
+*   **CI/CD:** GitHub Actions (separate backend and frontend pipelines)
 
 ---
 
@@ -46,7 +51,7 @@ To run this application locally, you will need:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/cognitive-vault.git
+git clone https://github.com/pmfml/cognitive-vault.git
 cd cognitive-vault
 ```
 
@@ -80,6 +85,8 @@ The application uses sensible defaults for local development, so **no environmen
 | `AWS_SECRET_KEY` | MinIO/S3 secret key | `minioadmin` |
 | `S3_BUCKET` | Bucket name for attachments | `cognitive-vault-attachments` |
 | `SERVER_PORT` | Backend HTTP port | `8081` |
+| `APP_USERNAME` | HTTP Basic auth username | `admin` |
+| `APP_PASSWORD` | HTTP Basic auth password | `admin` |
 
 ### 4. Build & Run Tests
 The test suite is divided into two categories:
@@ -109,6 +116,8 @@ Once the Docker containers are healthy and tests pass, start the Spring Boot app
 ```
 The REST API will be available at `http://localhost:8081`.
 
+> **Authentication:** All `/api/**` endpoints require HTTP Basic credentials. The default local credentials are `admin:admin`. The Vite dev proxy injects these automatically, so the frontend works transparently during development.
+
 For a production-like run with SQL logging disabled, start with the `prod` profile:
 ```bash
 SPRING_PROFILES_ACTIVE=prod ./mvnw spring-boot:run
@@ -126,6 +135,8 @@ The User Interface will be available at `http://localhost:5173`.
 ---
 
 ## 📡 REST API Documentation
+
+> All endpoints below require HTTP Basic authentication. Use the configured credentials (default: `admin:admin`).
 
 ### Note Management Endpoints
 
@@ -154,7 +165,7 @@ The User Interface will be available at `http://localhost:5173`.
 
 | Method | Endpoint | Description | Status Code |
 | :--- | :--- | :--- | :--- |
-| **GET** | `/api/v1/search?query=...&limit=10` | Hybrid semantic + textual search via RRF | `200 OK` |
+| **GET** | `/api/v1/search?query=...&limit=10` | Hybrid semantic + textual search via RRF (limit: 1–50) | `200 OK` |
 
 ### Attachment Management Endpoints
 
