@@ -13,6 +13,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8081',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => {
+            const credentials = Buffer.from('admin:admin').toString('base64');
+            proxyReq.setHeader('Authorization', `Basic ${credentials}`);
+          });
+        },
       },
     },
   },
