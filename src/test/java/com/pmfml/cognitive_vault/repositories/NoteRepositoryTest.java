@@ -2,6 +2,7 @@ package com.pmfml.cognitive_vault.repositories;
 
 import com.pmfml.cognitive_vault.entities.Note;
 import com.pmfml.cognitive_vault.entities.NoteType;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 @SpringBootTest
 @Transactional
 @Testcontainers
+@Tag("integration")
 class NoteRepositoryTest {
 
     @Container

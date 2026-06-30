@@ -82,9 +82,24 @@ The application uses sensible defaults for local development, so **no environmen
 | `SERVER_PORT` | Backend HTTP port | `8081` |
 
 ### 4. Build & Run Tests
-The project contains a full automated unit and integration testing suite. Run all 64 tests using the Maven wrapper:
+The test suite is divided into two categories:
+
+- **Unit & slice tests** (no infrastructure required): service logic, controller routing, document processing, and search validation.
+- **Integration tests** (require running Docker services): `@Tag("integration")` — context load and repository tests against a real PostgreSQL/pgvector container.
+
+Run the fast suite (unit + slice only — what CI runs):
 ```bash
-./mvnw clean test
+./mvnw test
+```
+
+Run only the integration tests (Docker must be running):
+```bash
+./mvnw test -DincludedGroups=integration
+```
+
+Run the full suite (unit + integration):
+```bash
+./mvnw test -DexcludedGroups=""
 ```
 
 ### 5. Running the Backend

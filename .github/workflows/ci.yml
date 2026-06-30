@@ -22,7 +22,7 @@ jobs:
           cache: 'maven'
 
       - name: Run Maven Tests
-        run: ./mvnw test
+        run: ./mvnw test -DexcludedGroups=integration
 
   frontend-tests:
     name: Frontend Tests (Vitest)

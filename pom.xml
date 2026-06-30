@@ -30,6 +30,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<tika.version>3.3.1</tika.version>
+		<!-- Tests tagged 'integration' require running Docker services.
+		     Override with -DexcludedGroups="" to include them. -->
+		<excludedGroups>integration</excludedGroups>
 	</properties>
 
 	<dependencyManagement>
@@ -148,6 +151,12 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<argLine>-Djava.io.tmpdir=${project.build.directory}</argLine>
+					<!-- Integration tests require running Docker services (PostgreSQL,
+					     Elasticsearch, MinIO). They are excluded by default so the test
+					     suite runs without infrastructure in CI and for quick feedback.
+					     To run integration tests locally: ./mvnw test -DincludedGroups=integration
+					     To run all tests:               ./mvnw test -DexcludedGroups="" -->
+					<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
 			</plugin>
 			<plugin>
