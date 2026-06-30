@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { api } from './api';
 import type { NoteResponse } from '../types';
 
+// Extend window for fetch mocking in Node.js environment
+interface Window {
+  fetch: typeof globalThis.fetch;
+}
+declare const global: Window;
+
 describe('API Service', () => {
   beforeEach(() => {
     // Intercept global fetch so we don't make real network calls
@@ -10,7 +16,7 @@ describe('API Service', () => {
 
   it('getNotes should fetch notes list from backend', async () => {
     const mockNotes: NoteResponse[] = [
-      { id: '1', title: 'Test 1', content: '...', type: 'TECHNICAL_NOTE', tags: [], createdAt: '', lastAccessedAt: '' }
+      { id: '1', title: 'Test 1', content: '...', type: 'TECHNICAL_NOTE', tags: [], createdAt: '', lastAccessedAt: '', language: null, summary: null, lastReviewedAt: null }
     ];
     
     (global.fetch as any).mockResolvedValueOnce({
@@ -25,7 +31,7 @@ describe('API Service', () => {
 
   it('createNote should post payload and return response object', async () => {
     const mockResponse: NoteResponse = { 
-      id: '2', title: 'New', content: 'Content', type: 'TECHNICAL_NOTE', tags: ['new'], createdAt: '', lastAccessedAt: '' 
+      id: '2', title: 'New', content: 'Content', type: 'TECHNICAL_NOTE', tags: ['new'], createdAt: '', lastAccessedAt: '', language: null, summary: null, lastReviewedAt: null
     };
     
     (global.fetch as any).mockResolvedValueOnce({

@@ -12,6 +12,9 @@ describe('NoteCard Component', () => {
     tags: ['react', 'vitest'],
     createdAt: new Date().toISOString(),
     lastAccessedAt: new Date().toISOString(),
+    language: null,
+    summary: null,
+    lastReviewedAt: null,
   };
 
   it('renders title and type correctly', () => {
