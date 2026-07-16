@@ -207,4 +207,4 @@ All validation and not-found errors return a structured JSON body:
 Coding styles and patterns are governed by standard guidelines located under the `.project-standards/` folder:
 *   [global-standards.md](.project-standards/global-standards.md): Language conventions (English codebase/docs), database mappings, constructor injections, and commit rules.
 *   [cognitive-vault-standards.md](.project-standards/cognitive-vault-standards.md): Domain modeling details, pgvector custom types mapping, and SDK settings.
-*   [ARCHITECTURE.md](ARCHITECTURE.md): Structural layered diagrams, database ER diagrams, and system lifecycle progressions.
+*   [ARCHITECTURE.md](docs/ARCHITECTURE.md): Structural layered diagrams, database ER diagrams, and system lifecycle progressions.
