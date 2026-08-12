@@ -41,7 +41,7 @@ graph TD
     subgraph Event-Driven Indexing
         Service -->|Publishes Events| EventBus[Application Events]
         EventBus -->|After Commit| Listener[ES Indexing Listener]
-        Listener -->|Elastic API Port 9200| ES[(Elasticsearch)]
+        Listener -->|Elastic API Port 9205| ES[(Elasticsearch)]
     end
 
     Repositories -->|JDBC Port 5434| DB[(PostgreSQL + pgvector)]
@@ -176,7 +176,175 @@ Spring Security is configured with HTTP Basic, stateless sessions, and CSRF disa
 
 ---
 
-## 5. Architectural Lifecycle Progression
+## 5. Sequence Diagrams
+
+The diagrams below illustrate the three most critical runtime flows in the system: creating a note with full embedding and indexing, executing a hybrid search with RRF fusion, and uploading an attachment with S3 rollback compensation.
+
+### 5.1 Note Creation Flow
+
+This sequence shows the complete lifecycle of creating a new note — from the initial HTTP request through tag resolution, ONNX embedding generation, database persistence, relationship calculation, and event-driven Elasticsearch indexing.
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Controller as NoteController
+    participant Validation as Bean Validation
+    participant Service as NoteService
+    participant TagRepo as TagRepository
+    participant ONNX as EmbeddingModel<br/>(ONNX all-MiniLM-L6-v2)
+    participant NoteRepo as NoteRepository
+    participant RelService as RelationshipService
+    participant EventBus as ApplicationEventPublisher
+    participant Listener as ES Indexing Listener
+    participant ES as Elasticsearch
+
+    Client->>Controller: POST /api/v1/notes (NoteRequest JSON)
+    Controller->>Validation: @Valid NoteRequest
+    alt Validation fails
+        Validation-->>Client: 400 Bad Request (field errors)
+    end
+    Controller->>Service: createNote(request)
+
+    Note over Service: @Transactional begins
+
+    Service->>TagRepo: resolveTags(tagNames)
+    loop For each tag name
+        TagRepo->>TagRepo: findByName() or save() new Tag
+    end
+    TagRepo-->>Service: Set of Tag entities
+
+    Service->>ONNX: embed(title + content)
+    ONNX-->>Service: float[384] embedding vector
+
+    Service->>NoteRepo: save(Note entity)
+    NoteRepo-->>Service: Saved Note (with generated UUID)
+
+    Service->>RelService: recalculateRelationships(savedNote)
+    RelService->>NoteRepo: findSimilarNotes(vectorString, limit)
+    NoteRepo-->>RelService: List of similar Notes
+    RelService->>RelService: Create/update Relationship records
+
+    Service->>EventBus: publish(NoteIndexRequestedEvent)
+
+    Note over Service: @Transactional commits
+
+    EventBus->>Listener: @TransactionalEventListener(AFTER_COMMIT)
+    Listener->>ES: Index NoteDocument
+    ES-->>Listener: 200 OK
+
+    Service-->>Controller: NoteResponse DTO
+    Controller-->>Client: 201 Created (JSON body)
+```
+
+### 5.2 Hybrid Search Flow (Reciprocal Rank Fusion)
+
+This sequence illustrates how a single user query is fanned out to two independent search backends — pgvector for semantic similarity and Elasticsearch for keyword matching — and the results are then fused using Reciprocal Rank Fusion (RRF) to produce a unified ranking.
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Controller as SearchController
+    participant Service as HybridSearchService
+    participant ONNX as EmbeddingModel<br/>(ONNX all-MiniLM-L6-v2)
+    participant PG as PostgreSQL<br/>(pgvector)
+    participant ES as Elasticsearch
+    participant NoteRepo as NoteRepository
+
+    Client->>Controller: GET /api/v1/search?query=...&limit=10
+    Controller->>Controller: @Validated @Min(1) @Max(50) limit
+    Controller->>Service: search(queryText, limit)
+
+    par Semantic Search
+        Service->>ONNX: embed(queryText)
+        ONNX-->>Service: float[384] query vector
+        Service->>PG: findSimilarNotes(vectorString, candidateLimit)
+        PG-->>Service: List of Note candidates (ranked by cosine distance)
+    and Full-Text Search
+        Service->>ES: searchNotes(queryText)
+        ES-->>Service: List of NoteDocument candidates (ranked by BM25)
+    end
+
+    Note over Service: Reciprocal Rank Fusion (k=60)
+    Service->>Service: Score each candidate:<br/>score += 1/(60 + rank) per list
+    Service->>Service: Sort by fused score descending
+    Service->>Service: Limit to top N results
+
+    Service->>NoteRepo: findAllById(rankedIds)
+    NoteRepo-->>Service: List of Note entities
+
+    Service->>NoteRepo: Update lastAccessedAt (transparent audit)
+    NoteRepo-->>Service: Saved
+
+    Service-->>Controller: List of NoteResponse (RRF-ranked)
+    Controller-->>Client: 200 OK (JSON array)
+```
+
+### 5.3 Attachment Upload Flow (with S3 Rollback Compensation)
+
+This sequence captures the multi-system coordination involved in uploading a file attachment — including MinIO storage, Apache Tika text extraction, database persistence, and the compensating rollback action that prevents orphaned S3 objects.
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Controller as AttachmentController
+    participant Service as AttachmentService
+    participant NoteRepo as NoteRepository
+    participant MinIO as MinIO (S3)
+    participant TxManager as TransactionSynchronizationManager
+    participant Tika as DocumentProcessor<br/>(Apache Tika)
+    participant AttachRepo as AttachmentRepository
+    participant EventBus as ApplicationEventPublisher
+    participant Listener as ES Indexing Listener
+    participant ES as Elasticsearch
+
+    Client->>Controller: POST /api/v1/notes/{noteId}/attachments<br/>(multipart file)
+    Controller->>Service: uploadAttachment(noteId, filename, contentType, bytes)
+
+    Note over Service: @Transactional begins
+
+    Service->>NoteRepo: findById(noteId)
+    NoteRepo-->>Service: Note entity
+
+    Service->>MinIO: uploadFile(s3Key, bytes, contentType)
+    MinIO-->>Service: Upload OK
+
+    Service->>TxManager: registerSynchronization(rollback hook)
+    Note over TxManager: If TX rolls back → delete S3 object
+
+    Service->>Tika: extractText(bytes, contentType, filename)
+    alt Plain text file (.txt, .md)
+        Tika-->>Service: UTF-8 decoded text
+    else Rich document (PDF, DOCX)
+        Tika->>Tika: Apache Tika AutoDetectParser
+        Tika-->>Service: Extracted text content
+    else Parsing failure
+        Tika-->>Service: Empty string (graceful degradation)
+    end
+
+    Service->>AttachRepo: save(Attachment entity)
+    AttachRepo-->>Service: Saved Attachment (with UUID)
+
+    Service->>EventBus: publish(NoteIndexRequestedEvent)
+
+    Note over Service: @Transactional commits
+
+    EventBus->>Listener: @TransactionalEventListener(AFTER_COMMIT)
+    Listener->>ES: Re-index parent NoteDocument<br/>(now includes attachment text)
+    ES-->>Listener: 200 OK
+
+    Service-->>Controller: AttachmentResponse DTO
+    Controller-->>Client: 201 Created (JSON body)
+
+    Note over TxManager: On rollback (alternate path):
+    rect rgb(255, 235, 235)
+        TxManager->>MinIO: deleteFile(s3Key)
+        MinIO-->>TxManager: Orphaned object removed
+    end
+```
+
+---
+
+## 6. Architectural Lifecycle Progression
 - **Phase 1 (Completed):** Setup database schema, model mappings, and REST API CRUD endpoints for notes/snippets.
 - **Phase 2 (Completed):** Implement S3 Attachment storage with local MinIO, including file metadata tracking and text extraction.
 - **Phase 3 (Completed):** Integrate Elasticsearch keyword indexing and Hybrid Search with RRF fusion.
