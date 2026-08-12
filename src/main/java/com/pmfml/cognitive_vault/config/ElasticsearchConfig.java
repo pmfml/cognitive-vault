@@ -7,7 +7,7 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchConfigurat
 
 /**
  * Configuration class for Spring Data Elasticsearch.
- * Connects the application to the Elasticsearch cluster on port 9200.
+ * Connects the application to the Elasticsearch cluster on port 9205.
  */
 @Configuration
 public class ElasticsearchConfig extends ElasticsearchConfiguration {
@@ -17,7 +17,7 @@ public class ElasticsearchConfig extends ElasticsearchConfiguration {
 
     @Override
     public ClientConfiguration clientConfiguration() {
-        // Remove protocol prefix if present, as connectedTo expects host:port (e.g. "localhost:9200")
+        // Remove protocol prefix if present, as connectedTo expects host:port (e.g. "localhost:9205")
         String hostAndPort = uris.replace("http://", "").replace("https://", "");
 
         return ClientConfiguration.builder()

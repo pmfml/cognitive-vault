@@ -59,7 +59,7 @@ cd cognitive-vault
 The project includes a `compose.yaml` file defining all required services:
 - **PostgreSQL** + pgvector extension on host port **5434**
 - **MinIO** object storage on host ports **9000** (API) / **9001** (Console)
-- **Elasticsearch** on host port **9200**
+- **Elasticsearch** on host port **9205**
 
 To start the infrastructure services, run:
 ```bash
@@ -78,7 +78,7 @@ The application uses sensible defaults for local development, so **no environmen
 | `DB_URL` | Full JDBC connection URL | `jdbc:postgresql://localhost:5434/cognitive_vault` |
 | `DB_USERNAME` | PostgreSQL username | `myuser` |
 | `DB_PASSWORD` | PostgreSQL password | `secret` |
-| `ELASTICSEARCH_URIS` | Elasticsearch endpoint URI | `http://localhost:9200` |
+| `ELASTICSEARCH_URIS` | Elasticsearch endpoint URI | `http://localhost:9205` |
 | `AWS_S3_ENDPOINT` | MinIO/S3 endpoint URL | `http://localhost:9000` |
 | `AWS_REGION` | AWS region for the S3 client | `us-east-1` |
 | `AWS_ACCESS_KEY` | MinIO/S3 access key | `minioadmin` |
