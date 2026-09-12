@@ -344,12 +344,62 @@ sequenceDiagram
 
 ---
 
-## 6. Architectural Lifecycle Progression
-- **Phase 1 (Completed):** Setup database schema, model mappings, and REST API CRUD endpoints for notes/snippets.
-- **Phase 2 (Completed):** Implement S3 Attachment storage with local MinIO, including file metadata tracking and text extraction.
-- **Phase 3 (Completed):** Integrate Elasticsearch keyword indexing and Hybrid Search with RRF fusion.
-- **Phase 4 (Completed):** Auto-link semantically related content via embedding matching, implement Spaced Repetition review engine, and add transparent access auditing.
-- **Phase 5 (Completed):** Build React + Vite frontend with a clean Notion-inspired UI (light/dark modes), hybrid search view, and note reader overlay.
-- **Phase 6 (Completed):** Note management forms with live Markdown preview, multi-file concurrent upload UI, and Recharts Dashboard.
-- **Phase 7 (Completed):** Pending Reviews UI, Full Note List, Edit/Delete flows, global Toasts, related-note navigation, and final UX polish.
-- **Phase 8 (Completed):** Security hardening (HTTP Basic auth, Actuator restriction, DTO information hiding), event-driven indexing, S3 rollback compensation, Apache Tika PDF extraction, search parameter validation, CI pipeline stabilization, and comprehensive test suite (67 unit/slice + frontend Vitest).
+## 6. Architectural Capabilities & Resilience Design
+
+The architecture addresses specific distributed systems and retrieval challenges through targeted design choices:
+
+### 6.1 Dual-Write Mitigation & Eventual Consistency
+- **Search Engine Decoupling:** Writing synchronously to Elasticsearch within database transactions risks data drift if the database transaction aborts after the index request succeeds. Using `@TransactionalEventListener(phase = AFTER_COMMIT)` guarantees that only persisted notes trigger search index mutations.
+- **S3 Orphan Compensation:** When uploading file attachments, binary payloads must be written to MinIO before entity persistence completes. A custom `TransactionSynchronization` listener hooks into `afterCompletion(STATUS_ROLLED_BACK)` to execute compensating deletions on MinIO if the JPA transaction fails.
+
+### 6.2 Reciprocal Rank Fusion (RRF) Rationale
+Directly combining Elasticsearch BM25 scores (unbounded positive floats) and pgvector cosine similarities (normalized floats between $-1$ and $1$) via linear weights requires complex per-query calibration. Reciprocal Rank Fusion completely bypasses score calibration by evaluating item ranks rather than raw scores:
+\[
+RRF(d) = \sum_{m \in M} \frac{1}{k + r_m(d)}
+\]
+where $M = \{\text{pgvector}, \text{Elasticsearch}\}$, $k = 60$ (smoothing constant), and $r_m(d)$ is the 1-based rank position of document $d$ within result set $m$. Notes that perform well across both retrieval modalities naturally float to the top.
+
+### 6.3 Local Embedded Inference vs External APIs
+Generating vector embeddings locally via Spring AI with ONNX (`all-MiniLM-L6-v2`, 384 dimensions) provides:
+- **Zero Network Overhead:** Embedding queries during search and ingestion run in-process without outbound HTTP latency.
+- **Data Privacy & Air-Gapped Operation:** User notes, confidential code snippets, and attachments never leave the local environment.
+- **Deterministic Cost & Availability:** No rate limits, token billing, or external service downtime.
+
+### 6.4 Spaced Repetition Temporal Decay Heuristics
+The spaced repetition engine detects learning staleness using three non-overlapping evaluation criteria in a single JPQL query:
+- **Unreviewed New Notes:** Created more than 24 hours ago with `lastReviewedAt IS NULL`.
+- **Accessed Since Last Review:** `lastAccessedAt > lastReviewedAt`, indicating active retrieval or query engagement since the last explicit study session.
+- **Temporal Staleness:** `lastReviewedAt < (NOW - 30 days)`, preventing established knowledge from fading over time.
+
+---
+
+## 7. Codebase Layout & Structural Mapping
+
+```
+cognitive-vault/
+├── compose.yaml                          # Infrastructure (PostgreSQL 16 + pgvector, MinIO, Elasticsearch 8.12)
+├── pom.xml                               # Maven project definition (Spring Boot 3.5.14, Spring AI, Tika)
+├── docs/
+│   └── ARCHITECTURE.md                   # System architecture and technical decisions (this document)
+├── frontend/                             # React 19 Single Page Application
+│   ├── src/
+│   │   ├── components/                   # UI components (Dashboard, NoteEditor, NoteViewer, etc.)
+│   │   ├── services/api.ts               # Typed REST client with error normalization
+│   │   └── types/index.ts                # TypeScript interfaces aligned with backend DTO records
+│   └── vite.config.ts                    # Vite dev proxy configuration with Basic Auth injection
+└── src/
+    ├── main/java/com/pmfml/cognitive_vault/
+    │   ├── config/                       # Spring Security, MinIO S3 client, and Elasticsearch configuration
+    │   ├── controllers/                  # REST controllers with Bean Validation (@Valid, @Min, @Max)
+    │   ├── dtos/                         # Immutable Java record DTOs (NoteRequest, NoteResponse, etc.)
+    │   ├── entities/                     # JPA entities (Note, Tag, Attachment, Relationship)
+    │   ├── events/                       # Spring application events (NoteIndexRequestedEvent)
+    │   ├── exceptions/                   # Centralized GlobalExceptionHandler and custom exceptions
+    │   ├── listeners/                    # Post-commit transactional event listeners
+    │   ├── repositories/                 # Spring Data JPA repositories with pgvector native queries
+    │   └── services/                     # HybridSearchService (RRF), DocumentProcessor, NoteService
+    └── test/java/com/pmfml/cognitive_vault/
+        ├── controllers/                  # MockMvc controller slice tests
+        ├── repositories/                 # Testcontainers-backed repository tests
+        └── services/                     # Unit test suites with Mockito
+```

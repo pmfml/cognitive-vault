@@ -1,38 +1,39 @@
 # Cognitive Vault 🧠📂
 
-**Cognitive Vault** is a smart Personal Organizer and Semantic Knowledge Repository designed to catalog notes, snippets, and attachments. It automatically evaluates the semantic similarity between notes to suggest content linkages and highlights outdated topics to guide study review cycles.
-
-This application is built as a portfolio piece showcasing Java backend engineering, relational-vector hybrid databases, and object storage integration.
+**Cognitive Vault** is a high-performance Knowledge Management & Semantic Retrieval engine designed to catalog notes, snippets, and rich document attachments. It automatically analyzes semantic similarity to discover latent connections between ideas, orchestrates an intelligent spaced repetition review engine, and executes hybrid search using Reciprocal Rank Fusion (RRF).
 
 ---
 
 ## 🚀 Key Features
 
-*   **Hybrid Note & Snippet Catalog:** Store standard markdown text notes and code snippets with language syntax highlights.
-*   **Semantic Relationships:** Uses vector embeddings (384-dimension) to dynamically connect notes on related topics.
-*   **Spaced Repetition Engine:** Automatically identifies notes requiring review based on three intelligent decay rules (never reviewed, accessed after last review, or not reviewed in 30+ days).
-*   **Hybrid Search:** Search notes and attachments by keyword (Elasticsearch) and semantic meaning (pgvector cosine similarity), combined via Reciprocal Rank Fusion (RRF). Search parameters are validated and capped for safety.
-*   **Document Analysis:** Upload attachments (PDFs, TXT, Markdown files) whose textual content is extracted via Apache Tika and indexed for both full-text and semantic search.
-*   **Transparent Access Audit:** Every search and direct note access automatically updates the `lastAccessedAt` timestamp, feeding the review engine with behavioral data.
-*   **Event-Driven Indexing:** Elasticsearch synchronization happens after database commit via transactional events, decoupling search availability from write operations.
-*   **Secure by Default:** HTTP Basic authentication protects all API endpoints, with credentials externalized via environment variables.
+> **All capabilities listed below are fully implemented and verified via unit, slice, and integration test suites.**
+
+- ✅ **Hybrid Search via RRF:** Combines lexical search (Elasticsearch BM25) and semantic vector search (PostgreSQL `pgvector` cosine distance) using Reciprocal Rank Fusion ($k = 60$) for optimal ranking across keywords and conceptual intent.
+- ✅ **Local Vector Embeddings:** Powered by Spring AI with an embedded ONNX transformer (`all-MiniLM-L6-v2`, 384 dimensions) running locally with zero external API dependencies or latency.
+- ✅ **Document Analysis & Ingestion:** Apache Tika 3.x extracts clean text from PDFs and documents, indexing extracted text in Elasticsearch while storing binary payloads in MinIO (S3-compatible).
+- ✅ **S3 Compensating Transactions:** Multi-phase upload with Spring's `TransactionSynchronizationManager` triggers automatic rollback compensation, deleting orphaned S3 blobs if database persistence fails.
+- ✅ **Spaced Repetition Decay Engine:** Automated decay algorithms detect topics requiring review based on three distinct lifecycle criteria (unreviewed creation, post-review access, or 30+ days staleness).
+- ✅ **Transparent Access Auditing:** Read actions and hybrid search queries transparently update the `lastAccessedAt` timestamp without disrupting read performance, feeding continuous behavioral data into the spaced repetition engine.
+- ✅ **Event-Driven Decoupled Indexing:** Search engine indexing is decoupled from database transactions using `@TransactionalEventListener(phase = AFTER_COMMIT)`, ensuring primary persistence is resilient to search cluster availability.
+- ✅ **Production-Grade API Contract:** Strictly typed DTO records, centralized Bean Validation with parameterized limits, custom error formats, and stateless HTTP Basic security.
+- ✅ **Modern Web UI:** Full-featured React 19 + TypeScript + Tailwind CSS v4 dashboard featuring interactive Recharts analytics, real-time Markdown preview, concurrent attachment uploads, and dark/light modes.
+- ✅ **Comprehensive Test Coverage:** Decoupled test architecture including unit tests, MockMvc slices, Testcontainers for real PostgreSQL/pgvector integration, and Vitest + React Testing Library for frontend components.
 
 ---
 
 ## 🛠️ Technology Stack
 
-*   **Backend:** Java 21 (Records, pattern matching, modern switch expressions)
-*   **Framework:** Spring Boot 3.5.x with Spring Data JPA and Spring Security
-*   **Security:** HTTP Basic authentication (stateless, single-user, externalized credentials)
-*   **Frontend:** React 19 + TypeScript + Vite 8 + Tailwind CSS v4 + Recharts
-*   **Database:** PostgreSQL 16 + `pgvector` extension (vector similarity search)
-*   **Semantic Embeddings:** Spring AI with local ONNX model (`all-MiniLM-L6-v2`, 384 dimensions)
-*   **Document Processing:** Apache Tika 3.x (text extraction from PDF and rich documents)
-*   **Object Storage:** MinIO (Local S3 compatibility via AWS SDK v2)
-*   **Search Engine:** Elasticsearch 8.x (full-text keyword indexing)
-*   **Local Containerization:** Docker / Docker Compose
-*   **Testing:** JUnit 5, Mockito, Spring WebMvcTest, Testcontainers (Backend) / Vitest + React Testing Library (Frontend)
-*   **CI/CD:** GitHub Actions (separate backend and frontend pipelines)
+- **Backend:** Java 21 (Records, Pattern Matching, modern switch expressions)
+- **Framework:** Spring Boot 3.5.14 with Spring Data JPA & Spring Security
+- **Vector & Embeddings:** Spring AI 1.0.9 (Local ONNX `all-MiniLM-L6-v2`, 384 dimensions)
+- **Document Processing:** Apache Tika 3.3.1 (PDF and multi-format text extraction)
+- **Databases & Storage:**
+  - **Relational + Vector:** PostgreSQL 16 + `pgvector` extension (`cosine` distance `<=>`)
+  - **Search Engine:** Elasticsearch 8.12.2 (BM25 lexical scoring)
+  - **Object Storage:** MinIO / AWS SDK v2 (`software.amazon.awssdk:s3`)
+- **Frontend:** React 19, TypeScript, Vite 8, Tailwind CSS v4, Lucide Icons, Recharts
+- **Testing:** JUnit 5, Mockito, Spring WebMvcTest, Testcontainers (PostgreSQL), Vitest, React Testing Library
+- **CI/CD:** GitHub Actions automated build & test workflows
 
 ---
 
@@ -200,11 +201,54 @@ All validation and not-found errors return a structured JSON body:
 }
 ```
 
+### 🧪 Quick Verification with cURL
+
+```bash
+# 1. Create a note (HTTP Basic Auth admin:admin)
+curl -s -u admin:admin -X POST http://localhost:8081/api/v1/notes \
+  -H "Content-Type: application/json" \
+  -d '{"title":"PostgreSQL pgvector Guide","content":"Indexing vectors with HNSW and IVFFlat for fast similarity search.","type":"TECHNICAL_NOTE","tags":["database","vector"]}'
+
+# 2. Run a Hybrid Search (Elasticsearch + pgvector via RRF)
+curl -s -u admin:admin "http://localhost:8081/api/v1/search?query=vector+indexing&limit=5" | jq
+
+# 3. Retrieve pending reviews (Spaced Repetition Decay Engine)
+curl -s -u admin:admin "http://localhost:8081/api/v1/notes/review-pending" | jq
+
+# 4. Upload an attachment with automatic Tika text extraction
+curl -s -u admin:admin -X POST http://localhost:8081/api/v1/notes/<NOTE_UUID>/attachments \
+  -F "file=@document.pdf"
+```
+
 ---
 
-## 📂 Project Structure & Coding Standards
+## 📂 Project Structure
 
-Coding styles and patterns are governed by standard guidelines located under the `.project-standards/` folder:
-*   [global-standards.md](.project-standards/global-standards.md): Language conventions (English codebase/docs), database mappings, constructor injections, and commit rules.
-*   [cognitive-vault-standards.md](.project-standards/cognitive-vault-standards.md): Domain modeling details, pgvector custom types mapping, and SDK settings.
-*   [ARCHITECTURE.md](docs/ARCHITECTURE.md): Structural layered diagrams, database ER diagrams, and system lifecycle progressions.
+```
+cognitive-vault/
+├── compose.yaml                  # Local infrastructure (PostgreSQL 16 + pgvector, MinIO, Elasticsearch 8)
+├── pom.xml                       # Maven reactor & dependency management (Spring Boot 3.5.14, Spring AI, Tika)
+├── docs/
+│   └── ARCHITECTURE.md           # System architecture, ER diagrams, design patterns & sequence flows
+├── frontend/                     # React 19 + TypeScript + Vite SPA
+│   ├── README.md                 # Frontend architecture, dev proxy, and testing instructions
+│   ├── src/
+│   │   ├── components/           # UI components (Dashboard, NoteEditor, NoteViewer, HybridSearch, etc.)
+│   │   ├── services/             # Axios/Fetch API client layer & Vitest specs
+│   │   └── types/                # TypeScript interfaces matching backend DTO records
+│   └── vite.config.ts            # Vite config with backend proxy and Basic Auth injection
+└── src/                          # Spring Boot application
+    ├── main/java/com/pmfml/cognitive_vault/
+    │   ├── config/               # Security (Basic Auth), S3 MinIO Client, Elasticsearch Config
+    │   ├── controllers/          # REST API endpoints (/api/v1/...) with Bean Validation
+    │   ├── dtos/                 # Immutable Java records for request/response contracts
+    │   ├── entities/             # JPA Entities (Note, Tag, Attachment, Relationship) & Converters
+    │   ├── events/               # Domain application events for decoupled indexing
+    │   ├── exceptions/           # Global exception handler & custom exceptions
+    │   ├── listeners/            # Post-commit Transactional Event Listeners
+    │   ├── repositories/         # Spring Data JPA & Elasticsearch Repositories
+    │   └── services/             # Hybrid search (RRF), embeddings, Tika extraction, spaced repetition
+    └── test/                     # JUnit 5, Mockito, MockMvc, and Testcontainers suites
+```
+
+For complete architectural details, entity relationships, and sequence diagrams, refer to [ARCHITECTURE.md](docs/ARCHITECTURE.md). For frontend setup and test execution, refer to [frontend/README.md](frontend/README.md).
