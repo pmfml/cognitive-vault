@@ -16,7 +16,11 @@ import java.util.UUID;
  * technical note or a specific code snippet.
  */
 @Entity
-@Table(name = "notes")
+@Table(name = "notes", indexes = {
+    @Index(name = "idx_note_last_reviewed", columnList = "last_reviewed_at"),
+    @Index(name = "idx_note_created_at", columnList = "created_at"),
+    @Index(name = "idx_note_last_accessed", columnList = "last_accessed_at")
+})
 @Getter
 @Setter
 @NoArgsConstructor

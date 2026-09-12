@@ -12,7 +12,9 @@ import java.util.UUID;
  * Represents metadata of files attached to notes and stored in MinIO/S3.
  */
 @Entity
-@Table(name = "attachments")
+@Table(name = "attachments", indexes = {
+    @Index(name = "idx_attachment_note_id", columnList = "note_id")
+})
 @Getter
 @Setter
 @NoArgsConstructor
